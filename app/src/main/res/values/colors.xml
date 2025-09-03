@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="splash_background">#6200EE</color>
+    <color name="gray">#9E9E9E</color>
+    <color name="category_chip_background">#F3F3F3</color> <!-- Light gray -->
+    <color name="category_chip_selected">#E8F5E9</color> <!-- Light green when selected -->
+    <color name="chip_selected_background">#E3F2FD</color>
+    <color name="placeholder_color">#F5F5F5</color>
+    <color name="error_color">#9B051B</color>
+    <color name="card_stroke">#1A000000</color>
+    <!-- <color name="chip_background_color">#FF6200EE</color>  -->
+     <color name="chip_text_color">#FFFFFFFF</color>
+     <color name="chip_selected_text">#FF000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="amber_600">#FFB300</color>
+    <color name="green_600">#43A047</color>
+
+
+ </resources>

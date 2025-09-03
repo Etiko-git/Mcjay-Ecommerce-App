@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/productCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:strokeColor="@color/card_stroke"
+    app:strokeWidth="0.5dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="250dp">
+
+        <!-- Product Image Container with Gradient Overlay -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="2000dp">
+
+            <!-- Product Image -->
+            <ImageView
+                android:id="@+id/productImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/product_image"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:scaleType="centerCrop" />
+
+            <!-- Gradient Overlay at Bottom for Text -->
+            <View
+                android:id="@+id/bottomGradientOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_alignParentBottom="true"
+                android:background="@drawable/gradient_bottom_overlay"/>
+
+            <!-- Favorite Icon - Modern Heart with Shadow -->
+            <ImageView
+                android:id="@+id/favoriteIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentTop="true"
+                android:layout_margin="12dp"
+                android:src="@drawable/ic_favorite_outline"
+                android:background="@drawable/circle_white_background"
+                android:padding="8dp"
+                app:tint="@color/purple_500" />
+
+            <!-- Discount Badge - Modern Design -->
+            <TextView
+                android:id="@+id/discountBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_margin="12dp"
+                android:paddingHorizontal="8dp"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_discount_badge"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:text="-20%"/>
+
+            <!-- Product Info at Bottom of Image -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Product Name -->
+                <TextView
+                    android:id="@+id/productName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textColor="@color/white"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textStyle="bold"
+                    android:text="The Mirac Jiz"/>
+
+                <!-- Rating and Reviews -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical">
+
+                    <RatingBar
+                        android:id="@+id/productRating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="16dp"
+                        android:numStars="5"
+                        android:rating="4.5"
+                        android:stepSize="0.5"
+                        android:isIndicator="true"
+                        android:progressBackgroundTint="@color/gray_light"
+                        android:progressTint="@color/amber_600"
+                        android:secondaryProgressTint="@color/amber_600"
+                        style="?android:attr/ratingBarStyleSmall"/>
+
+                    <TextView
+                        android:id="@+id/ratingText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="11sp"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="4dp"
+                        android:text="(128 reviews)"/>
+
+                </LinearLayout>
+
+                <!-- Price Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:id="@+id/discountPrice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        android:text="$195.00"/>
+
+                    <TextView
+                        android:id="@+id/productPrice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/white"
+                        android:alpha="0.8"
+                        android:textStyle="normal"
+                        android:layout_marginStart="6dp"
+                        android:paddingTop="2dp"
+                        android:text="$220.00"/>
+
+                </LinearLayout>
+            </LinearLayout>
+
+        </RelativeLayout>
+
+        <!-- Out of Stock Overlay -->
+        <View
+            android:id="@+id/outOfStockOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:background="#80000000"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/outOfStockText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="OUT OF STOCK"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_out_of_stock"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
+
+</com.google.android.material.card.MaterialCardView>
