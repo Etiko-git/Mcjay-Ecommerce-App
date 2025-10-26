@@ -2,17 +2,21 @@ package com.solih.mcjay.fragments
 
 import android.animation.ValueAnimator
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
-import android.widget.Toast
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.chip.Chip
 import com.solih.mcjay.R
+import com.solih.mcjay.SharedPrefManager
 import com.solih.mcjay.SupabaseClientInstance
 import com.solih.mcjay.adapters.ProductAdapter
 import com.solih.mcjay.databinding.FragmentHomeBinding
@@ -34,7 +38,7 @@ class HomeFragment : Fragment() {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     private lateinit var productAdapter: ProductAdapter
-    private var favoriteSet = mutableSetOf<String>() // Stores product IDs that are favorites
+    private var favoriteSet = mutableSetOf<Int>()
     private var isHeaderVisible = true
 
     override fun onCreateView(
@@ -53,21 +57,46 @@ class HomeFragment : Fragment() {
         setupCategories()
         setupProducts()
         setupSearch()
-        setupScrollBehavior() // Add scroll behavior
+        setupScrollBehavior()
         loadProductsAndFavorites()
     }
 
     private fun setupUserGreeting() {
-        val user = supabase.auth.currentUserOrNull()
-        // Extract username from email (part before @) or use a default
-        val username = user?.email?.substringBefore("@") ?: "Guest"
-        binding.welcomeText.text = "Hello, $username! 👋"
-    }
+        val sharedPrefManager = SharedPrefManager.getInstance(requireContext())
 
+        // Detailed debugging
+        Log.d("HomeFragment Debug", "=== HOME FRAGMENT DEBUG ===")
+        Log.d("HomeFragment Debug", "isLoggedIn: ${sharedPrefManager.isLoggedIn()}")
+        Log.d("HomeFragment Debug", "authType: ${sharedPrefManager.getAuthType()}")
+        Log.d("HomeFragment Debug", "userName: '${sharedPrefManager.getUserName()}'")
+        Log.d("HomeFragment Debug", "authToken: ${sharedPrefManager.getAuthToken()}")
+        Log.d("HomeFragment Debug", "=== END DEBUG ===")
+
+        if (sharedPrefManager.isLoggedIn() && sharedPrefManager.getAuthType() == "myid") {
+            val userName = sharedPrefManager.getUserName()
+
+            Log.d("HomeFragment", "MyID User detected, userName: '$userName'")
+
+            if (userName != "Guest" && userName != "MyID User") {
+                binding.welcomeText.text = "Hello, $userName! 👋"
+                Log.d("HomeFragment", "Using actual MyID username: $userName")
+            } else {
+                binding.welcomeText.text = "Hello, Welcome Back! 👋"
+                Log.d("HomeFragment", "Using fallback - userName is: '$userName'")
+            }
+        } else {
+            // Fallback to Supabase user
+            Log.d("HomeFragment", "Not MyID user or not logged in, checking Supabase")
+            val user = supabase.auth.currentUserOrNull()
+            val username = user?.email?.substringBefore("@") ?: "Guest"
+            binding.welcomeText.text = "Hello, $username! 👋"
+            Log.d("HomeFragment", "Using Supabase username: $username")
+        }
+    }
     private fun setupCategories() {
         val categories = listOf("All", "Bags", "Shoes", "Electronics", "Clothing", "Home", "Jewelry", "Beauty", "Sports")
 
-        binding.categoriesContainer.removeAllViews() // Clear existing chips
+        binding.categoriesContainer.removeAllViews()
 
         categories.forEachIndexed { index, category ->
             val chip = Chip(requireContext()).apply {
@@ -78,12 +107,10 @@ class HomeFragment : Fragment() {
                 setTextColor(resources.getColorStateList(com.solih.mcjay.R.color.black, null))
                 setOnClickListener {
                     filterProducts(category)
-                    // Add chip selection animation
                     val scaleAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.scale_up)
                     startAnimation(scaleAnimation)
                 }
 
-                // Staggered entrance animation for chips
                 val slideInAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.slide_in_bottom)
                 slideInAnimation.startOffset = (index * 100).toLong()
                 startAnimation(slideInAnimation)
@@ -95,11 +122,9 @@ class HomeFragment : Fragment() {
     private fun setupProducts() {
         productAdapter = ProductAdapter(emptyList(), favoriteSet,
             onProductClick = { product ->
-                // Handle product click - navigate to product detail
-                navigateToProductDetail(product)
+                showProductDetails(product)
             },
             onFavoriteClick = { product, isFavorite ->
-                // Handle favorite toggle
                 toggleFavorite(product, isFavorite)
             }
         )
@@ -110,26 +135,25 @@ class HomeFragment : Fragment() {
             itemAnimator = DefaultItemAnimator()
         }
 
-        // Add shimmer effect while loading
         showShimmerEffect(true)
     }
 
     private fun setupScrollBehavior() {
         binding.productsRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             private var scrolledDistance = 0
-            private val scrollThreshold = 100 // Adjust this value for sensitivity
+            private val scrollThreshold = 100
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
 
-                if (dy > 0) { // Scrolling down
+                if (dy > 0) {
                     scrolledDistance += dy
                     if (scrolledDistance > scrollThreshold && isHeaderVisible) {
                         hideHeader()
                         isHeaderVisible = false
                         scrolledDistance = 0
                     }
-                } else if (dy < 0) { // Scrolling up
+                } else if (dy < 0) {
                     scrolledDistance += dy
                     if (scrolledDistance < -scrollThreshold && !isHeaderVisible) {
                         showHeader()
@@ -138,7 +162,6 @@ class HomeFragment : Fragment() {
                     }
                 }
 
-                // Reset scrolledDistance when at top
                 if (!recyclerView.canScrollVertically(-1)) {
                     scrolledDistance = 0
                     if (!isHeaderVisible) {
@@ -151,7 +174,6 @@ class HomeFragment : Fragment() {
     }
 
     private fun hideHeader() {
-        // Collapse the height smoothly
         val initialHeight = binding.headerContainer.height
         val anim = ValueAnimator.ofInt(initialHeight, 0)
         anim.addUpdateListener { valueAnimator ->
@@ -166,8 +188,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showHeader() {
-        // Expand the height smoothly
-        val finalHeight = resources.getDimensionPixelSize(R.dimen.header_height) // Set a fixed height or measure
+        val finalHeight = resources.getDimensionPixelSize(com.solih.mcjay.R.dimen.header_height)
         val anim = ValueAnimator.ofInt(0, finalHeight)
         anim.addUpdateListener { valueAnimator ->
             val value = valueAnimator.animatedValue as Int
@@ -180,57 +201,124 @@ class HomeFragment : Fragment() {
         anim.start()
     }
 
-    /**
-     * Loads products and favorites in parallel so the hearts display correctly
-     */
     private fun loadProductsAndFavorites(category: String = "All") {
         scope.launch {
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
+                val sharedPrefManager = SharedPrefManager.getInstance(requireContext())
 
-                val productsDeferred = withContext(Dispatchers.IO) {
-                    if (category == "All") {
-                        supabase.postgrest["products"]
-                            .select()
-                            .decodeList<Product>()
-                    } else {
-                        supabase.postgrest["products"]
-                            .select {
-                                filter {
-                                    eq("category", category)
-                                }
-                            }
-                            .decodeList<Product>()
-                    }
-                }
-
-                val favoritesDeferred = withContext(Dispatchers.IO) {
-                    supabase.postgrest["favorites"]
-                        .select {
-                            filter { eq("user_id", userId) }
-                        }
-                        .decodeList<Favorite>()
-                }
-
-                // Extract favorite product IDs
-                favoriteSet.clear()
-                favoriteSet.addAll(favoritesDeferred.map { it.product_id })
-
-                productAdapter.updateProducts(productsDeferred, favoriteSet)
-
-                // Hide shimmer after loading
-                showShimmerEffect(false)
-
-                // Show success animation
-                if (productsDeferred.isNotEmpty()) {
-                    val slideInAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.slide_in_bottom)
-                    binding.productsRecycler.startAnimation(slideInAnimation)
+                // Check if user is logged in via MyID
+                if (sharedPrefManager.isLoggedIn() && sharedPrefManager.getAuthType() == "myid") {
+                    // MyID user - load products without user-specific data
+                    loadProductsForMyIDUser(category)
+                } else {
+                    // Supabase user - load products with user data
+                    loadProductsForSupabaseUser(category)
                 }
 
             } catch (e: Exception) {
-                e.printStackTrace()
-                showShimmerEffect(false)
-                Toast.makeText(requireContext(), "Error loading products: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("HomeFragment", "Error in loadProductsAndFavorites: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    showShimmerEffect(false)
+                    Toast.makeText(requireContext(), "Error loading products", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private suspend fun loadProductsForMyIDUser(category: String) {
+        val products = withContext(Dispatchers.IO) {
+            try {
+                val result = if (category == "All") {
+                    supabase.postgrest["products"]
+                        .select()
+                        .decodeList<Product>()
+                } else {
+                    supabase.postgrest["products"]
+                        .select {
+                            filter { eq("category", category) }
+                        }
+                        .decodeList<Product>()
+                }
+                Log.d("HomeFragment", "Successfully fetched ${result.size} products for MyID user")
+                result
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error fetching products for MyID user: ${e.message}", e)
+                emptyList<Product>()
+            }
+        }
+
+        withContext(Dispatchers.Main) {
+            productAdapter.updateProducts(products)
+            showShimmerEffect(false)
+
+            if (products.isEmpty()) {
+                Toast.makeText(requireContext(), "No products found", Toast.LENGTH_SHORT).show()
+            } else {
+                binding.productsRecycler.visibility = View.VISIBLE
+                val slideInAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.slide_in_bottom)
+                binding.productsRecycler.startAnimation(slideInAnimation)
+            }
+        }
+    }
+
+    private suspend fun loadProductsForSupabaseUser(category: String) {
+        val userId = supabase.auth.currentUserOrNull()?.id ?: return
+
+        // Your existing Supabase user loading code here
+        val products = withContext(Dispatchers.IO) {
+            try {
+                val result = if (category == "All") {
+                    supabase.postgrest["products"]
+                        .select()
+                        .decodeList<Product>()
+                } else {
+                    supabase.postgrest["products"]
+                        .select {
+                            filter { eq("category", category) }
+                        }
+                        .decodeList<Product>()
+                }
+                Log.d("HomeFragment", "Successfully fetched ${result.size} products")
+                result
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error fetching products: ${e.message}", e)
+                emptyList<Product>()
+            }
+        }
+
+        val favorites = try {
+            withContext(Dispatchers.IO) {
+                supabase.postgrest["favorites"]
+                    .select {
+                        filter { eq("userid", userId) }
+                    }
+                    .decodeList<Favorite>()
+            }
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "Error fetching favorites: ${e.message}")
+            emptyList<Favorite>()
+        }
+
+        favoriteSet.clear()
+        favorites.forEach { favorite ->
+            try {
+                val productId = favorite.product_id.toIntOrNull()
+                productId?.let { favoriteSet.add(it) }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error processing favorite: ${e.message}")
+            }
+        }
+
+        withContext(Dispatchers.Main) {
+            productAdapter.updateProducts(products)
+            showShimmerEffect(false)
+
+            if (products.isEmpty()) {
+                Toast.makeText(requireContext(), "No products found", Toast.LENGTH_SHORT).show()
+            } else {
+                binding.productsRecycler.visibility = View.VISIBLE
+                val slideInAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.slide_in_bottom)
+                binding.productsRecycler.startAnimation(slideInAnimation)
             }
         }
     }
@@ -250,39 +338,189 @@ class HomeFragment : Fragment() {
     private fun toggleFavorite(product: Product, isFavorite: Boolean) {
         scope.launch {
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
+                val userId = supabase.auth.currentUserOrNull()?.id ?: run {
+                    Toast.makeText(requireContext(), "Please login to manage favorites", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                val productId = product.id?.toString() ?: return@launch
 
                 if (isFavorite) {
                     supabase.postgrest["favorites"].insert(
                         mapOf(
                             "user_id" to userId,
-                            "product_id" to product.product_id
+                            "product_id" to productId
                         )
                     )
-                    favoriteSet.add(product.product_id)
+                    favoriteSet.add(productId.hashCode())
                 } else {
                     supabase.postgrest["favorites"].delete {
                         filter {
                             eq("user_id", userId)
-                            eq("product_id", product.product_id)
+                            eq("product_id", productId)
                         }
                     }
-                    favoriteSet.remove(product.product_id)
+                    favoriteSet.remove(productId.hashCode())
                 }
 
-                val currentProducts = productAdapter.getProducts()
-                productAdapter.updateProducts(currentProducts, favoriteSet)
-
+                productAdapter.notifyDataSetChanged()
+                Toast.makeText(
+                    requireContext(),
+                    if (isFavorite) "Added to favorites" else "Removed from favorites",
+                    Toast.LENGTH_SHORT
+                ).show()
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(requireContext(), "Error updating favorite: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Error updating favorite", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun navigateToProductDetail(product: Product) {
-        // Implement navigation to product detail fragment/activity
-        Toast.makeText(requireContext(), "Clicked: ${product.name}", Toast.LENGTH_SHORT).show()
+    private fun showProductDetails(product: Product) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_product_details, null)
+
+        val productImage: ImageView = dialogView.findViewById(R.id.dialog_product_image)
+        val productName: TextView = dialogView.findViewById(R.id.dialog_product_name)
+        val productPrice: TextView = dialogView.findViewById(R.id.dialog_product_price)
+        val productDescription: TextView = dialogView.findViewById(R.id.dialog_product_description)
+        val productCategory: TextView = dialogView.findViewById(R.id.dialog_product_category)
+        val productStock: TextView = dialogView.findViewById(R.id.dialog_product_stock)
+        val quantityText: TextView = dialogView.findViewById(R.id.dialog_quantity_text)
+        val minusButton: ImageButton = dialogView.findViewById(R.id.dialog_quantity_minus)
+        val plusButton: ImageButton = dialogView.findViewById(R.id.dialog_quantity_plus)
+        val addToCartButton: Button = dialogView.findViewById(R.id.dialog_add_to_cart)
+
+        // Set product data
+        Glide.with(requireContext())
+            .load(product.getFirstImageUrl())
+            .placeholder(R.drawable.placeholder_image)
+            .into(productImage)
+
+        productName.text = product.name
+        productDescription.text = product.description ?: "No description available"
+        productCategory.text = "Category: ${product.category}"
+        productStock.text = "Stock: ${product.stock_quantity} available"
+
+        // Handle pricing
+        if (product.hasDiscount()) {
+            productPrice.text = "$${product.discount_price} (Save ${product.getDiscountPercentage()}%)"
+        } else {
+            productPrice.text = "$${product.price}"
+        }
+
+        // Quantity management
+        var quantity = 1
+        quantityText.text = quantity.toString()
+
+        minusButton.setOnClickListener {
+            if (quantity > 1) {
+                quantity--
+                quantityText.text = quantity.toString()
+            }
+        }
+
+        plusButton.setOnClickListener {
+            if (quantity < product.stock_quantity) {
+                quantity++
+                quantityText.text = quantity.toString()
+            } else {
+                Toast.makeText(requireContext(), "Only ${product.stock_quantity} available", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Add to cart functionality - UPDATED to use Supabase cart table
+        addToCartButton.setOnClickListener {
+            addToCartToDatabase(product, quantity)
+        }
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+    }
+    private fun addToCartToDatabase(product: Product, quantity: Int) {
+        scope.launch {
+            try {
+                val userId = supabase.auth.currentUserOrNull()?.id ?: run {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Please login to add items to cart", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                val productId = product.id ?: run {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Invalid product", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                if (quantity > product.stock_quantity) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Only ${product.stock_quantity} items available", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                Log.d("CartDebug", "Adding to cart: user_id=$userId, product_id=$productId, quantity=$quantity")
+
+                // Use the proper insert syntax for Supabase Kotlin SDK
+                withContext(Dispatchers.IO) {
+                    try {
+                        // Option 1: Simple insert without expecting a response
+                        supabase.postgrest["cart"].insert(
+                            mapOf(
+                                "user_id" to userId,
+                                "product_id" to productId,
+                                "quantity" to quantity
+                            )
+                        )
+
+                        // If you need the inserted data back, use this approach instead:
+                        // val inserted = supabase.postgrest.from("cart").insert(
+                        //     mapOf(
+                        //         "user_id" to userId,
+                        //         "product_id" to productId,
+                        //         "quantity" to quantity
+                        //     )
+                        // ).select().decodeSingle<Map<String, Any>>()
+
+                        Log.d("CartDebug", "Insert completed successfully")
+                    } catch (e: Exception) {
+                        Log.e("CartDebug", "Insert error: ${e.message}", e)
+                        throw e
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    val scaleAnimation = AnimationUtils.loadAnimation(requireContext(), R.anim.bounce)
+                    binding.root.startAnimation(scaleAnimation)
+                    Toast.makeText(
+                        requireContext(),
+                        "Added $quantity ${product.name} to cart",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Error adding to cart: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    when {
+                        e.message?.contains("duplicate", ignoreCase = true) == true -> {
+                            Toast.makeText(requireContext(), "Item already in cart", Toast.LENGTH_SHORT).show()
+                        }
+                        e.message?.contains("foreign key", ignoreCase = true) == true -> {
+                            Toast.makeText(requireContext(), "Invalid product", Toast.LENGTH_SHORT).show()
+                        }
+                        else -> {
+                            Toast.makeText(requireContext(), "Failed to add to cart: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun filterProducts(category: String) {
@@ -294,62 +532,40 @@ class HomeFragment : Fragment() {
         binding.searchField.setOnEditorActionListener { _, _, _ ->
             val query = binding.searchField.text.toString().trim()
             if (query.isNotEmpty()) {
-                // Add search animation
-                val shakeAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.shake)
-                binding.searchField.startAnimation(shakeAnimation)
                 searchProducts(query)
             }
             true
-        }
-
-        // Add focus change animation
-        binding.searchField.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                val scaleAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.scale_up)
-                binding.searchField.startAnimation(scaleAnimation)
-            }
         }
     }
 
     private fun searchProducts(query: String) {
         scope.launch {
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
-
                 val products = withContext(Dispatchers.IO) {
-                    supabase.postgrest["products"]
-                        .select {
-                            filter {
-                                ilike("name", "%$query%")
+                    try {
+                        supabase.postgrest["products"]
+                            .select {
+                                filter { ilike("name", "%$query%") }
                             }
-                        }
-                        .decodeList<Product>()
+                            .decodeList<Product>()
+                    } catch (e: Exception) {
+                        emptyList<Product>()
+                    }
                 }
 
-                val favorites = withContext(Dispatchers.IO) {
-                    supabase.postgrest["favorites"]
-                        .select {
-                            filter { eq("user_id", userId) }
-                        }
-                        .decodeList<Map<String, Any>>()
+                withContext(Dispatchers.Main) {
+                    productAdapter.updateProducts(products)
+                    if (products.isEmpty()) {
+                        Toast.makeText(requireContext(), "No products match your search", Toast.LENGTH_SHORT).show()
+                    }
                 }
-
-                favoriteSet.clear()
-                favoriteSet.addAll(favorites.map { it["product_id"] as String })
-
-                productAdapter.updateProducts(products, favoriteSet)
-
-                // Add search results animation
-                val fadeInAnimation = AnimationUtils.loadAnimation(requireContext(), com.solih.mcjay.R.anim.fade_in)
-                binding.productsRecycler.startAnimation(fadeInAnimation)
 
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(requireContext(), "Search error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Search error", Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

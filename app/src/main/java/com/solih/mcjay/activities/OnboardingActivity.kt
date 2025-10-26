@@ -48,6 +48,11 @@ class OnboardingActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
+
+        binding.signInAsSellerButton.setOnClickListener {
+            startActivity(Intent(this, SellerRegistrationActivity::class.java))
+            finish()
+        }
     }
 
     override fun onResume() {

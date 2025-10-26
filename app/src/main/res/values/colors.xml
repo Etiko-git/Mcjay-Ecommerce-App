@@ -21,6 +21,8 @@
     <color name="gray_light">#F5F5F5</color>
     <color name="amber_600">#FFB300</color>
     <color name="green_600">#43A047</color>
+    <color name="green_500">#FF4CAF50</color>
+
 
 
  </resources>

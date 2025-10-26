@@ -13,12 +13,12 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="250dp">
+        android:layout_height="wrap_content">
 
         <!-- Product Image Container with Gradient Overlay -->
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="2000dp">
+            android:layout_height="200dp"> <!-- Adjusted from 2000dp -->
 
             <!-- Product Image -->
             <ImageView
@@ -149,7 +149,6 @@
 
                 </LinearLayout>
             </LinearLayout>
-
         </RelativeLayout>
 
         <!-- Out of Stock Overlay -->
@@ -175,5 +174,4 @@
             android:visibility="gone"/>
 
     </RelativeLayout>
-
 </com.google.android.material.card.MaterialCardView>

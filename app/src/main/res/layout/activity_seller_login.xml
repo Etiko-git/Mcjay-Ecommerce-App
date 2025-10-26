@@ -7,7 +7,7 @@
     android:fillViewport="true"
     android:fitsSystemWindows="true"
     android:background="@drawable/bg_gradient"
-    tools:context=".activities.LoginActivity">
+    tools:context=".activities.SellerLoginActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -21,19 +21,20 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:layout_marginTop="40dp"
-            android:layout_marginBottom="30dp">
+            android:layout_marginTop="60dp"
+            android:layout_marginBottom="40dp">
 
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                app:cardCornerRadius="50dp"
-                app:cardElevation="8dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                app:cardCornerRadius="40dp"
+                app:cardElevation="6dp"
                 android:outlineSpotShadowColor="@color/purple_200"
                 app:strokeColor="@color/white"
                 app:strokeWidth="2dp">
 
                 <ImageView
+                    android:id="@+id/logo"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/logo_mcjay"
@@ -45,9 +46,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Welcome Back"
+                android:text="Seller Login"
                 android:textColor="@color/purple_500"
-                android:textSize="28sp"
+                android:textSize="24sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.02" />
 
@@ -55,7 +56,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Sign in to continue shopping"
+                android:text="Welcome back to your store"
                 android:textColor="@color/purple_500"
                 android:textSize="14sp"
                 android:alpha="0.8" />
@@ -76,14 +77,14 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
-                <!-- Email/Username/Mobile Input -->
+                <!-- Email Field -->
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/inputLayout"
+                    android:id="@+id/emailInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Email, Username or Mobile"
+                    android:hint="Email Address"
                     app:startIconDrawable="@drawable/ic_email"
                     app:startIconTint="@color/purple_500"
                     app:boxBackgroundColor="@color/white"
@@ -95,17 +96,17 @@
                     app:boxCornerRadiusTopStart="12dp">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputField"
+                        android:id="@+id/etEmail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:inputType="textEmailAddress"
                         android:textColor="@color/black"
-                        android:textSize="16sp"
-                        android:inputType="textEmailAddress"/>
+                        android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Password Input -->
+                <!-- Password Field -->
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/passwordLayout"
+                    android:id="@+id/passwordInputLayout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -124,33 +125,32 @@
                     app:boxCornerRadiusTopStart="12dp">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/passwordField"
+                        android:id="@+id/etPassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
                         android:textColor="@color/black"
-                        android:textSize="16sp"/>
+                        android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Forgot Password -->
                 <TextView
-                    android:id="@+id/forgotPasswordText"
+                    android:id="@+id/tvForgotPassword"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
                     android:layout_marginTop="8dp"
                     android:text="Forgot Password?"
                     android:textColor="@color/purple_500"
-                    android:textSize="14sp"
-                    android:textStyle="bold"/>
+                    android:textSize="14sp" />
 
                 <!-- Login Button -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/loginButton"
+                    android:id="@+id/btnLogin"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="24dp"
-                    android:text="Login"
+                    android:text="Login as Seller"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="12dp"
@@ -167,18 +167,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="16dp"
-                    android:visibility="gone"/>
-
-                <!-- Redirect Text -->
-                <TextView
-                    android:id="@+id/redirectText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="8dp"
-                    android:text="Redirecting..."
-                    android:textColor="@color/gray"
-                    android:visibility="gone"/>
+                    android:visibility="gone" />
 
                 <!-- Divider -->
                 <LinearLayout
@@ -197,7 +186,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Or continue with"
+                        android:text="Don't have an account?"
                         android:textColor="@color/gray"
                         android:textSize="12sp"
                         android:layout_marginHorizontal="8dp" />
@@ -209,70 +198,33 @@
                         android:background="@color/gray_light" />
                 </LinearLayout>
 
-                <!-- Social Login -->
+                <!-- Register Redirect -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center">
+                    android:gravity="center"
+                    android:layout_marginTop="16dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="Google"
-                        app:icon="@drawable/ic_google"
-                        app:iconGravity="textStart"
-                        app:cornerRadius="12dp"
-                        app:strokeColor="@color/gray_light"
-                        app:strokeWidth="1dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="New to our platform?"
+                        android:textColor="@color/black"
+                        android:textSize="14sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/myIDButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:text="myID"
-                        app:icon="@drawable/myid"
-                        app:iconGravity="textStart"
-                        app:cornerRadius="12dp"
-                        app:strokeColor="@color/gray_light"
-                        app:strokeWidth="1dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    <TextView
+                        android:id="@+id/tvRegister"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="Register as Seller"
+                        android:textColor="@color/purple_500"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- Register Redirect -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Don't have an account?"
-                android:textColor="@color/black"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/loginTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="Register"
-                android:textColor="@color/purple_500"
-                android:textSize="14sp"
-                android:textStyle="bold"
-               />
-        </LinearLayout>
-
     </LinearLayout>
 </ScrollView>

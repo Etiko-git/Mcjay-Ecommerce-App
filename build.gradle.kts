@@ -12,5 +12,6 @@ plugins {
     id("com.android.library") version "8.11.1" apply false
     alias(libs.plugins.kotlin.android) apply false
     // Add the Google services plugin
+
     id("com.google.gms.google-services") version "4.4.3" apply false
 }

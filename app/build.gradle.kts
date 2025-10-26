@@ -2,9 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.kapt")
+    id("kotlin-parcelize") // Add this line
     // Removed Firebase Google Services plugin since no Firebase anymore
     // id("com.google.gms.google-services")
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
 }
 
 android {
@@ -68,16 +69,17 @@ dependencies {
     implementation(libs.supabase.storage)
     implementation(libs.supabase.functions)
     implementation(libs.ktor.client.cio)
-   // implementation("io.github.jan-tennert.supabase:auth-kt:3.2.2")
+    implementation("io.github.jan-tennert.supabase:auth-kt:3.2.2")
+
+
 
     // Testing
     testImplementation(libs.junit)
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.0.0")
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-
-    implementation("io.github.jan-tennert.supabase:supabase-kt:2.0.0")
 
     // Glide
     implementation("com.github.bumptech.glide:glide:4.16.0")
@@ -101,17 +103,48 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    implementation("io.github.jan-tennert.supabase:storage-kt:3.2.2")
-    implementation("io.github.jan-tennert.supabase:postgrest-kt:3.2.2")    // PostgREST
-    implementation("io.github.jan-tennert.supabase:gotrue-kt:2.0.0")
 
-    //implementation("io.github.jan-tennert.supabase:supabase-kt:3.2.2")
-    // OR you can use the all-in-one dependency:
-    implementation("io.github.jan-tennert.supabase:supabase-kt:2.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+// For JSON parsing
 
-    // Kotlin serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-// Make sure you have this
     implementation("com.facebook.shimmer:shimmer:0.5.0")
 
+    implementation("androidx.fragment:fragment-ktx:1.8.2")
+    // Lifecycle (for lifecycleScope in Fragments)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+
+// Use the latest version
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+// For JSON parsing
+
+    implementation("androidx.preference:preference-ktx:1.2.1") // Or the latest version
+
+    // Lottie for animations
+    implementation("com.airbnb.android:lottie:6.1.0")
+// For QR code generation (optional)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+// For HTTP requests (if not already using)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    implementation("androidx.core:core-ktx:1.12.0")
+// For coroutines/tasks
+
+
+    // For coroutines support on Play Services Tasks (fixes 'tasks' and 'await')
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+// Use latest version; 1.8.1 as of Oct 2025
+// Ensure these are also present for location and coroutines
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+// Latest for FusedLocationClient
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("androidx.webkit:webkit:1.9.0")
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
 }

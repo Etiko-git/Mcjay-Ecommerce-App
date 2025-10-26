@@ -7,6 +7,8 @@ import android.util.Patterns
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.solih.mcjay.R
+import com.solih.mcjay.SharedPrefManager
 import com.solih.mcjay.SupabaseClientInstance
 import com.solih.mcjay.databinding.LoginBinding
 import io.github.jan.supabase.auth.auth
@@ -20,14 +22,48 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: LoginBinding
     private val supabase = SupabaseClientInstance.client
     private val scope = CoroutineScope(Dispatchers.Main)
+    private lateinit var sharedPrefManager: SharedPrefManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = LoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        sharedPrefManager = SharedPrefManager.getInstance(this)
+
+        // REMOVED: checkExistingSession() - Don't auto-redirect
+
         setupListeners()
     }
+
+    // REMOVE this entire method or keep it for manual checking
+    /*
+    private fun checkExistingSession() {
+        // Check if user is already logged in via MyID
+        if (sharedPrefManager.isLoggedIn() && sharedPrefManager.getAuthType() == "myid") {
+            Log.d("LoginActivity", "User already logged in via MyID, redirecting to Home")
+            startActivity(Intent(this, HomeActivity::class.java))
+            finish()
+            return
+        }
+
+        // Check Supabase session
+        scope.launch {
+            try {
+                val session = supabase.auth.currentSessionOrNull()
+                if (session != null) {
+                    Log.d("LoginActivity", "User already logged in via Supabase, redirecting to Home")
+                    // Save Supabase session to SharedPreferences for consistency
+                    sharedPrefManager.saveSupabaseAuth()
+                    startActivity(Intent(this@LoginActivity, HomeActivity::class.java))
+                    finish()
+                }
+            } catch (e: Exception) {
+                Log.e("LoginActivity", "Error checking Supabase session: ${e.message}")
+            }
+        }
+    }
+    */
 
     private fun setupListeners() {
         binding.loginButton.setOnClickListener {
@@ -39,6 +75,15 @@ class LoginActivity : AppCompatActivity() {
         binding.loginTextView.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
             finish()
+        }
+
+        binding.myIDButton.setOnClickListener {
+            try {
+                val intent = Intent(this, MyIDLoginActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Failed to open myID: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -95,6 +140,9 @@ class LoginActivity : AppCompatActivity() {
                 if (user != null) {
                     Log.d("Supabase", "Logged in as: ${user.email}")
 
+                    // Save Supabase session to SharedPreferences
+                    sharedPrefManager.saveSupabaseAuth()
+
                     // Show success message and redirect
                     showRedirecting()
 
@@ -147,17 +195,6 @@ class LoginActivity : AppCompatActivity() {
             binding.redirectText.visibility = View.VISIBLE
             binding.progressBar.visibility = View.VISIBLE
         }
-    }
-
-    private fun showForgotPasswordDialog() {
-        // Implement forgot password functionality
-        Toast.makeText(this, "Forgot password feature coming soon!", Toast.LENGTH_SHORT).show()
-
-        // You can implement a dialog or start a new activity for password reset
-        /*
-        val intent = Intent(this, ForgotPasswordActivity::class.java)
-        startActivity(intent)
-        */
     }
 
     override fun onDestroy() {

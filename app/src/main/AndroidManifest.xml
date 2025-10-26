@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.solih.mcjay">
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".App"
         android:allowBackup="true"
@@ -36,6 +38,30 @@
         </activity> <!-- Other Activities -->
         <activity android:name=".activities.OnboardingActivity" />
         <activity android:name=".activities.RegisterActivity" />
+        <activity android:name=".activities.SellerRegistrationActivity" />
+        <activity android:name=".activities.SellerLoginActivity" />
+        <activity android:name=".activities.SellerHomeActivity"
+            android:exported="false"/>
+        <activity android:name=".activities.SellerProfileActivity"
+            android:exported="false"/>
+        <activity android:name=".activities.CompleteProfileActivity"
+            android:exported="false"/>
+        <!-- Add this new entry for MyIDLoginActivity -->
+<!--        <activity-->
+<!--            android:name=".activities.MyIDLoginActivity"-->
+<!--            android:exported="false" />-->
+
+        <activity
+            android:name=".activities.MyIDLoginActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mcjay" android:host="auth-success" />
+            </intent-filter>
+
+        </activity>
     </application>
 
 </manifest>
