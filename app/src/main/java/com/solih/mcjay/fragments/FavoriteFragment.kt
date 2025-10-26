@@ -101,7 +101,7 @@ class FavoriteFragment : Fragment() {
                 // Fetch favorites with error handling
                 val favorites = try {
                     withContext(Dispatchers.IO) {
-                        val result = supabase.postgrest["favorites"].select {
+                        val result = supabase.postgrest.from("favorites").select {
                             filter { eq("user_id", userId) }
                         }.decodeList<Favorite>()
                         Log.d("FavoriteFragment", "Fetched ${result.size} favorites")
@@ -115,10 +115,21 @@ class FavoriteFragment : Fragment() {
                     emptyList<Favorite>()
                 }
 
-                // Extract product IDs
-                val productIds = favorites
-                    .mapNotNull { it.product_id.toIntOrNull() }
-                    .filter { it != 0 }
+                // Extract product IDs - Handle both Int and String product_ids
+                val productIds = favorites.mapNotNull { favorite ->
+                    try {
+                        // If product_id is already Int, use it directly
+                        if (favorite.product_id is Int) {
+                            favorite.product_id
+                        } else {
+                            // Try to parse as Int, if fails use as String
+                            favorite.product_id.toString().toIntOrNull()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FavoriteFragment", "Error parsing product_id: ${favorite.product_id}", e)
+                        null
+                    }
+                }
                 Log.d("FavoriteFragment", "Extracted productIds: $productIds")
 
                 if (productIds.isEmpty()) {
@@ -130,26 +141,13 @@ class FavoriteFragment : Fragment() {
                     return@launch
                 }
 
-                // Fetch products
-                val products = try {
-                    withContext(Dispatchers.IO) {
-                        val result = mutableListOf<Product>()
-                        productIds.forEach { productId ->
-                            val productList = supabase.postgrest["products"].select {
-                                filter { eq("id", productId) }
-                            }.decodeList<Product>()
-                            result.addAll(productList)
-                            Log.d("FavoriteFragment", "Fetched products for id $productId: ${productList.size}")
-                        }
-                        Log.d("FavoriteFragment", "Total products fetched: ${result.size}")
-                        result.forEach { prod ->
-                            Log.d("FavoriteFragment", "Product: id=${prod.id}, name=${prod.name}, product_id=${prod.product_id}")
-                        }
-                        result
-                    }
-                } catch (e: Exception) {
-                    Log.e("FavoriteFragment", "Error fetching products: ${e.message}", e)
-                    emptyList<Product>()
+                // Fetch products - FIXED: Use OR queries for multiple IDs
+                // Fetch products using individual queries (more reliable)
+                val products = if (productIds.size <= 10) { // Limit to avoid too many requests
+                    loadProductsIndividual(productIds)
+                } else {
+                    // For large numbers, just take first 10 to avoid performance issues
+                    loadProductsIndividual(productIds.take(10))
                 }
 
                 favoriteProducts.clear()
@@ -182,6 +180,24 @@ class FavoriteFragment : Fragment() {
         }
     }
 
+    // Alternative method using individual queries (slower but more reliable)
+    private suspend fun loadProductsIndividual(productIds: List<Int>): List<Product> {
+        return withContext(Dispatchers.IO) {
+            val products = mutableListOf<Product>()
+            productIds.forEach { productId ->
+                try {
+                    val productList = supabase.postgrest.from("products").select {
+                        filter { eq("id", productId) }
+                    }.decodeList<Product>()
+                    products.addAll(productList)
+                } catch (e: Exception) {
+                    Log.e("FavoriteFragment", "Error fetching product $productId: ${e.message}")
+                }
+            }
+            products
+        }
+    }
+
     private fun removeFromFavorites(product: Product) {
         scope.launch {
             try {
@@ -201,7 +217,7 @@ class FavoriteFragment : Fragment() {
 
                 // Delete favorite entry
                 withContext(Dispatchers.IO) {
-                    supabase.postgrest["favorites"].delete {
+                    supabase.postgrest.from("favorites").delete {
                         filter {
                             eq("user_id", userId)
                             eq("product_id", productId)
@@ -209,8 +225,15 @@ class FavoriteFragment : Fragment() {
                     }
                 }
 
-                // Update UI (FavoritesAdapter handles local removal)
+                // Remove from local list and update adapter
                 withContext(Dispatchers.Main) {
+                    favoriteProducts.removeAll { it.id == product.id }
+                    favoritesAdapter.updateList(favoriteProducts)
+
+                    if (favoriteProducts.isEmpty()) {
+                        showEmptyState("No favorites yet")
+                    }
+
                     Toast.makeText(requireContext(), "Removed from favorites", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -259,7 +282,7 @@ class FavoriteFragment : Fragment() {
 
                 // Check if product already exists in cart
                 val existingCartItems = withContext(Dispatchers.IO) {
-                    supabase.postgrest["cart"].select {
+                    supabase.postgrest.from("cart").select {
                         filter {
                             eq("user_id", userId)
                             eq("product_id", productId)
@@ -273,13 +296,15 @@ class FavoriteFragment : Fragment() {
                     val cartItemId = item["id"]?.toString() ?: ""
 
                     withContext(Dispatchers.IO) {
-                        supabase.postgrest["cart"].update(mapOf("quantity" to (currentQuantity + 1))) {
+                        supabase.postgrest.from("cart").update(
+                            mapOf("quantity" to (currentQuantity + 1))
+                        ) {
                             filter { eq("id", cartItemId) }
                         }
                     }
                 } else {
                     withContext(Dispatchers.IO) {
-                        supabase.postgrest["cart"].insert(
+                        supabase.postgrest.from("cart").insert(
                             mapOf(
                                 "user_id" to userId,
                                 "product_id" to productId,

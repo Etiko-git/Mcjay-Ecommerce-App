@@ -46,6 +46,8 @@
             android:exported="false"/>
         <activity android:name=".activities.CompleteProfileActivity"
             android:exported="false"/>
+        <activity android:name=".activities.AddProductActivity" />
+        <activity android:name=".activities.SellerProductsActivity" />
         <!-- Add this new entry for MyIDLoginActivity -->
 <!--        <activity-->
 <!--            android:name=".activities.MyIDLoginActivity"-->

@@ -147,4 +147,5 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
 
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 }

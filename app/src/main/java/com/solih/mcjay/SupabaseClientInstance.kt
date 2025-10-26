@@ -29,6 +29,7 @@ object SupabaseClientInstance {
             install(Storage)    // Enables storage (.storage for file uploads)
             install(Realtime)
             install(Functions)
+
         }
     }
 

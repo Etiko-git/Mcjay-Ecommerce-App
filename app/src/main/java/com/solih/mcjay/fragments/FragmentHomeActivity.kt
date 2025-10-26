@@ -38,7 +38,8 @@ class HomeFragment : Fragment() {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     private lateinit var productAdapter: ProductAdapter
-    private var favoriteSet = mutableSetOf<Int>()
+    // Change this line in your class properties
+    private var favoriteSet = mutableSetOf<Int>() // Back to Int for product IDs
     private var isHeaderVisible = true
 
     override fun onCreateView(
@@ -264,7 +265,6 @@ class HomeFragment : Fragment() {
     private suspend fun loadProductsForSupabaseUser(category: String) {
         val userId = supabase.auth.currentUserOrNull()?.id ?: return
 
-        // Your existing Supabase user loading code here
         val products = withContext(Dispatchers.IO) {
             try {
                 val result = if (category == "All") {
@@ -290,7 +290,7 @@ class HomeFragment : Fragment() {
             withContext(Dispatchers.IO) {
                 supabase.postgrest["favorites"]
                     .select {
-                        filter { eq("userid", userId) }
+                        filter { eq("user_id", userId) }
                     }
                     .decodeList<Favorite>()
             }
@@ -301,12 +301,7 @@ class HomeFragment : Fragment() {
 
         favoriteSet.clear()
         favorites.forEach { favorite ->
-            try {
-                val productId = favorite.product_id.toIntOrNull()
-                productId?.let { favoriteSet.add(it) }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Error processing favorite: ${e.message}")
-            }
+            favoriteSet.add(favorite.product_id) // Directly using the Int product_id
         }
 
         withContext(Dispatchers.Main) {
@@ -339,41 +334,62 @@ class HomeFragment : Fragment() {
         scope.launch {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id ?: run {
-                    Toast.makeText(requireContext(), "Please login to manage favorites", Toast.LENGTH_SHORT).show()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Please login to manage favorites", Toast.LENGTH_SHORT).show()
+                    }
                     return@launch
                 }
 
-                val productId = product.id?.toString() ?: return@launch
-
-                if (isFavorite) {
-                    supabase.postgrest["favorites"].insert(
-                        mapOf(
-                            "user_id" to userId,
-                            "product_id" to productId
-                        )
-                    )
-                    favoriteSet.add(productId.hashCode())
-                } else {
-                    supabase.postgrest["favorites"].delete {
-                        filter {
-                            eq("user_id", userId)
-                            eq("product_id", productId)
-                        }
+                val productId = product.id ?: run {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Invalid product", Toast.LENGTH_SHORT).show()
                     }
-                    favoriteSet.remove(productId.hashCode())
+                    return@launch
                 }
 
-                productAdapter.notifyDataSetChanged()
-                Toast.makeText(
-                    requireContext(),
-                    if (isFavorite) "Added to favorites" else "Removed from favorites",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (isFavorite) {
+                    // Add to favorites
+                    withContext(Dispatchers.IO) {
+                        supabase.postgrest["favorites"].insert(
+                            Favorite(
+                                user_id = userId,
+                                product_id = productId
+                            )
+                        )
+                    }
+                    favoriteSet.add(productId)
+                    Log.d("Favorite", "Added product $productId to favorites")
+                } else {
+                    // Remove from favorites
+                    withContext(Dispatchers.IO) {
+                        supabase.postgrest["favorites"].delete {
+                            filter {
+                                eq("user_id", userId)
+                                eq("product_id", productId)
+                            }
+                        }
+                    }
+                    favoriteSet.remove(productId)
+                    Log.d("Favorite", "Removed product $productId from favorites")
+                }
+
+                withContext(Dispatchers.Main) {
+                    productAdapter.notifyItemChanged(productAdapter.getProductPosition(product))
+                    Toast.makeText(
+                        requireContext(),
+                        if (isFavorite) "Added to favorites" else "Removed from favorites",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error updating favorite", Toast.LENGTH_SHORT).show()
+                Log.e("HomeFragment", "Error updating favorite: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error updating favorite: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
+
 
     private fun showProductDetails(product: Product) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_product_details, null)

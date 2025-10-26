@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/categoryInputLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Category">
+
+        <AutoCompleteTextView
+            android:id="@+id/spCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Select Category"
+            android:inputType="none" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/typeInputLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Type">
+
+        <AutoCompleteTextView
+            android:id="@+id/spType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Select Type"
+            android:inputType="none" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/brandInputLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Brand">
+
+        <AutoCompleteTextView
+            android:id="@+id/spBrand"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Select Brand"
+            android:inputType="none" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stock Status"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <RadioGroup
+        android:id="@+id/radioGroupStock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/radioStockAll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="All Products" />
+
+        <RadioButton
+            android:id="@+id/radioStockInStock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="In Stock" />
+
+        <RadioButton
+            android:id="@+id/radioStockOutOfStock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Out of Stock" />
+
+        <RadioButton
+            android:id="@+id/radioStockLowStock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Low Stock (1-10 items)" />
+
+    </RadioGroup>
+
+</LinearLayout>

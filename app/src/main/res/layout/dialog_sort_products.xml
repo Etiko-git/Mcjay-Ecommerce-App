@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <RadioGroup
+        android:id="@+id/radioGroupSort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/radioNewest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Newest First" />
+
+        <RadioButton
+            android:id="@+id/radioOldest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Oldest First" />
+
+        <RadioButton
+            android:id="@+id/radioNameAsc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Name (A-Z)" />
+
+        <RadioButton
+            android:id="@+id/radioNameDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Name (Z-A)" />
+
+        <RadioButton
+            android:id="@+id/radioPriceLowHigh"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Price (Low to High)" />
+
+        <RadioButton
+            android:id="@+id/radioPriceHighLow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Price (High to Low)" />
+
+        <RadioButton
+            android:id="@+id/radioStockLowHigh"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stock (Low to High)" />
+
+        <RadioButton
+            android:id="@+id/radioStockHighLow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stock (High to Low)" />
+
+    </RadioGroup>
+
+</LinearLayout>

@@ -47,16 +47,20 @@ class SellerHomeActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnAddProduct.setOnClickListener {
-            Toast.makeText(this, "Add Product feature coming soon", Toast.LENGTH_SHORT).show()
-        }
 
-        binding.btnViewProducts.setOnClickListener {
-            Toast.makeText(this, "View Products feature coming soon", Toast.LENGTH_SHORT).show()
-        }
 
         binding.btnViewOrders.setOnClickListener {
             Toast.makeText(this, "View Orders feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnAddProduct.setOnClickListener {
+            val intent = Intent(this@SellerHomeActivity, AddProductActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.btnViewProducts.setOnClickListener {
+            val intent = Intent(this@SellerHomeActivity, SellerProductsActivity::class.java)
+            startActivity(intent)
         }
     }
 
