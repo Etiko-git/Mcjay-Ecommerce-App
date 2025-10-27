@@ -3,6 +3,8 @@
     package="com.solih.mcjay">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- For Android 13+ -->
 
     <application
         android:name=".App"
@@ -48,6 +50,8 @@
             android:exported="false"/>
         <activity android:name=".activities.AddProductActivity" />
         <activity android:name=".activities.SellerProductsActivity" />
+        <activity android:name=".activities.ProductDetailActivity" />
+
         <!-- Add this new entry for MyIDLoginActivity -->
 <!--        <activity-->
 <!--            android:name=".activities.MyIDLoginActivity"-->

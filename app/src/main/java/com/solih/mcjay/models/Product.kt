@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonElement
 @Serializable
 data class Product(
     val id: Int? = null,
+
     val product_id: String,
     val name: String,
     val description: String? = null,
@@ -26,7 +27,7 @@ data class Product(
     // New seller fields
     val seller_id: String? = null,
     val seller_name: String? = null
-){
+) {
     // Improved image URL extraction for storage URLs
     fun getImageUrls(): List<String> {
         return try {

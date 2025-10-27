@@ -1,6 +1,7 @@
 package com.solih.mcjay.fragments
 
 import android.animation.ValueAnimator
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,6 +19,7 @@ import com.google.android.material.chip.Chip
 import com.solih.mcjay.R
 import com.solih.mcjay.SharedPrefManager
 import com.solih.mcjay.SupabaseClientInstance
+import com.solih.mcjay.activities.ProductDetailActivity
 import com.solih.mcjay.adapters.ProductAdapter
 import com.solih.mcjay.databinding.FragmentHomeBinding
 import com.solih.mcjay.models.Favorite
@@ -39,7 +41,7 @@ class HomeFragment : Fragment() {
 
     private lateinit var productAdapter: ProductAdapter
     // Change this line in your class properties
-    private var favoriteSet = mutableSetOf<Int>() // Back to Int for product IDs
+    private var favoriteSet = mutableSetOf<Int>() // Changed to Int for product.id
     private var isHeaderVisible = true
 
     override fun onCreateView(
@@ -122,8 +124,11 @@ class HomeFragment : Fragment() {
 
     private fun setupProducts() {
         productAdapter = ProductAdapter(emptyList(), favoriteSet,
+            // Replace your current onProductClick with:
             onProductClick = { product ->
-                showProductDetails(product)
+                val intent = Intent(requireContext(), ProductDetailActivity::class.java)
+                intent.putExtra("product_id", product.product_id)
+                requireContext().startActivity(intent)
             },
             onFavoriteClick = { product, isFavorite ->
                 toggleFavorite(product, isFavorite)
