@@ -15,7 +15,7 @@ import com.solih.mcjay.models.Product
 
 class CartAdapter(
     private val cartItems: List<CartItem>,
-    private val products: Map<Int, Product>, // Map of product_id to Product
+    private val products: Map<String, Product>, // Changed to Map<String, Product>
     private val onItemAction: (CartItem, String) -> Unit
 ) : RecyclerView.Adapter<CartAdapter.ViewHolder>() {
 
@@ -39,7 +39,7 @@ class CartAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val cartItem = cartItems[position]
-        val product = products[cartItem.product_id]
+        val product = products[cartItem.product_id] // Direct string lookup
 
         if (product == null) {
             // Hide or show placeholder if product not found

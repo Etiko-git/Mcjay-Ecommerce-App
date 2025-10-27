@@ -25,7 +25,7 @@ class CartFragment : Fragment() {
     private lateinit var binding: FragmentCartBinding
     private lateinit var cartAdapter: CartAdapter
     private val cartItems = mutableListOf<CartItem>()
-    private val productsMap = mutableMapOf<Int, Product>() // product_id to Product
+    private val productsMap = mutableMapOf<String, Product>() // Changed to Map<String, Product>
     private val supabase = com.solih.mcjay.SupabaseClientInstance.client
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -100,14 +100,14 @@ class CartFragment : Fragment() {
                 // Get product IDs from cart items
                 val productIds = cartItemsList.map { it.product_id }.distinct()
 
-                // Fetch product details for cart items - FIXED: Use individual queries
+                // Fetch product details for cart items using string product_id
                 val products = mutableListOf<Product>()
                 for (productId in productIds) {
                     try {
                         val productList = withContext(Dispatchers.IO) {
                             supabase.postgrest["products"]
                                 .select {
-                                    filter { eq("id", productId) }
+                                    filter { eq("product_id", productId) } // Use product_id string
                                 }
                                 .decodeList<Product>()
                         }
@@ -119,12 +119,10 @@ class CartFragment : Fragment() {
                     }
                 }
 
-                // Create products map
+                // Create products map with string keys
                 productsMap.clear()
                 products.forEach { product ->
-                    product.id?.let { productId ->
-                        productsMap[productId] = product
-                    }
+                    productsMap[product.product_id] = product // Use product_id string as key
                 }
 
                 // Update cart items

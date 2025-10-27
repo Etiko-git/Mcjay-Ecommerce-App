@@ -6,8 +6,9 @@ import kotlinx.serialization.Serializable
 data class CartItem(
     val id: Int? = null,
     val user_id: String,
-    val product_id: Int,
+    val product_id: String, // Changed to String
     val quantity: Int,
+    val price: Double,
     val created_at: String? = null,
     val updated_at: String? = null
 )
