@@ -15,6 +15,7 @@
 
         <!-- User Avatar - UPDATED: Remove shapeAppearanceOverlay -->
         <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/review_image"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_person"

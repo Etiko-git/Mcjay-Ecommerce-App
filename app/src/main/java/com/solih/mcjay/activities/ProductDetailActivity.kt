@@ -89,11 +89,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 throw Exception("Product not found with ID: $productIdStr")
             }
 
-            val fetchedProduct = products.first()
-            if (fetchedProduct.id == null) {
-                throw Exception("Product has no ID")
-            }
-            fetchedProduct
+            products.first()
         }
     }
 
@@ -256,60 +252,94 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun loadReviews() {
         scope.launch {
             try {
-                Log.d("ProductDetail", "Loading reviews for product ID: ${product.id}")
+                Log.d("ProductDetail", "=== START LOAD REVIEWS ===")
                 Log.d("ProductDetail", "Product string ID: ${product.product_id}")
 
-                // First, let's check if there are any reviews at all in the database
-                val allReviews = withContext(Dispatchers.IO) {
-                    supabase.postgrest.from("reviews")
-                        .select()
-                        .decodeList<Review>()
-                }
-                Log.d("ProductDetail", "Total reviews in database: ${allReviews.size}")
-
-                // Now get reviews for this specific product
+                // Get reviews for this specific product
                 val reviews = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("reviews")
                         .select {
-                            filter { eq("product_id", product.id!!) }
+                            filter { eq("product_id", product.product_id) }
                             order(column = "created_at", order = Order.DESCENDING)
                         }
                         .decodeList<Review>()
                 }
 
-                Log.d("ProductDetail", "Loaded ${reviews.size} reviews for product ${product.id}")
-
-                // Log each review to see what we're getting
-                reviews.forEachIndexed { index, review ->
-                    Log.d("ProductDetail", "Review $index: ID=${review.id}, User=${review.user_id}, Rating=${review.rating}, ProductID=${review.product_id}")
-                }
+                Log.d("ProductDetail", "Loaded ${reviews.size} reviews for product ${product.product_id}")
 
                 withContext(Dispatchers.Main) {
                     reviewsList.clear()
                     reviewsList.addAll(reviews)
                     reviewsAdapter.notifyDataSetChanged()
 
+                    Log.d("ProductDetail", "Reviews list size: ${reviewsList.size}")
+                    Log.d("ProductDetail", "Adapter item count: ${reviewsAdapter.itemCount}")
+
+                    // ALWAYS show the reviews section, but control what's inside
+                    binding.reviewsSection.visibility = View.VISIBLE
+
                     if (reviewsList.isEmpty()) {
-                        binding.reviewsSection.visibility = View.GONE
+                        // Show "no reviews" message but keep section visible
                         binding.noReviewsText.visibility = View.VISIBLE
+                        binding.reviewsRecyclerView.visibility = View.GONE
                         binding.noReviewsText.text = "No reviews yet. Be the first to review!"
-                        Log.d("ProductDetail", "No reviews found for this product")
+                        Log.d("ProductDetail", "No reviews found - showing empty state")
                     } else {
-                        binding.reviewsSection.visibility = View.VISIBLE
+                        // Show the reviews list
                         binding.noReviewsText.visibility = View.GONE
-                        Log.d("ProductDetail", "Displaying ${reviewsList.size} reviews")
+                        binding.reviewsRecyclerView.visibility = View.VISIBLE
+                        Log.d("ProductDetail", "Reviews found - showing ${reviewsList.size} reviews")
                     }
+
+                    // Force UI update
+                    binding.reviewsRecyclerView.invalidate()
+                    binding.reviewsSection.requestLayout()
                 }
+
+                Log.d("ProductDetail", "=== END LOAD REVIEWS ===")
 
             } catch (e: Exception) {
                 Log.e("ProductDetail", "Error loading reviews: ${e.message}", e)
                 withContext(Dispatchers.Main) {
+                    // Show error but keep section visible
+                    binding.reviewsSection.visibility = View.VISIBLE
                     binding.noReviewsText.visibility = View.VISIBLE
+                    binding.reviewsRecyclerView.visibility = View.GONE
                     binding.noReviewsText.text = "Error loading reviews: ${e.message}"
-                    binding.reviewsSection.visibility = View.GONE
                 }
             }
         }
+    }
+
+
+
+    private fun debugVisibilityChanges() {
+        // Add visibility change listeners to see when they're being modified
+        binding.reviewsSection.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            Log.d("ProductDetail", "Reviews section layout changed - visibility: ${v.visibility}")
+        }
+
+        // Also log when loadReviews is called
+        Log.d("ProductDetail", "loadReviews() called - current visibility: ${binding.reviewsSection.visibility}")
+    }
+    private fun forceReviewsSectionVisible() {
+        // This will override any visibility changes for debugging
+        binding.reviewsSection.visibility = View.VISIBLE
+        binding.reviewsSection.postDelayed({
+            Log.d("ProductDetail", "Forced visibility check - current: ${binding.reviewsSection.visibility}")
+            if (binding.reviewsSection.visibility != View.VISIBLE) {
+                binding.reviewsSection.visibility = View.VISIBLE
+                Log.d("ProductDetail", "Visibility was changed - reset to VISIBLE")
+            }
+        }, 1000)
+
+        binding.reviewsSection.postDelayed({
+            Log.d("ProductDetail", "Second visibility check - current: ${binding.reviewsSection.visibility}")
+            if (binding.reviewsSection.visibility != View.VISIBLE) {
+                binding.reviewsSection.visibility = View.VISIBLE
+                Log.d("ProductDetail", "Visibility was changed again - reset to VISIBLE")
+            }
+        }, 3000)
     }
 
     private fun loadSimilarProducts() {
@@ -344,12 +374,13 @@ class ProductDetailActivity : AppCompatActivity() {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
 
+                // CHANGED: Use string product_id for favorites
                 val favorites = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("favorites")
                         .select {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", product.id!!)
+                                eq("product_id", product.product_id) // CHANGED: Use string product_id
                             }
                         }
                         .decodeList<Map<String, Any>>()
@@ -373,24 +404,24 @@ class ProductDetailActivity : AppCompatActivity() {
                 }
 
                 if (isFavorite) {
-                    // Remove from favorites
+                    // Remove from favorites - CHANGED: Use string product_id
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("favorites").delete {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", product.id!!)
+                                eq("product_id", product.product_id) // CHANGED: Use string product_id
                             }
                         }
                     }
                     isFavorite = false
                     Toast.makeText(this@ProductDetailActivity, "Removed from favorites", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Add to favorites
+                    // Add to favorites - CHANGED: Use string product_id
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("favorites").insert(
                             mapOf(
                                 "user_id" to userId,
-                                "product_id" to product.id!!
+                                "product_id" to product.product_id // CHANGED: Use string product_id
                             )
                         )
                     }
@@ -425,12 +456,12 @@ class ProductDetailActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // Check if product already exists in cart
+                // Check if product already exists in cart - CHANGED: Use string product_id
                 val existingCartItems = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("cart").select {
                         filter {
                             eq("user_id", userId)
-                            eq("product_id", product.id!!)
+                            eq("product_id", product.product_id) // CHANGED: Use string product_id
                         }
                     }.decodeList<Map<String, Any>>()
                 }
@@ -448,11 +479,12 @@ class ProductDetailActivity : AppCompatActivity() {
                         }
                     }
                 } else {
+                    // CHANGED: Use string product_id for cart
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("cart").insert(
                             mapOf(
                                 "user_id" to userId,
-                                "product_id" to product.id!!,
+                                "product_id" to product.product_id, // CHANGED: Use string product_id
                                 "quantity" to quantity,
                                 "price" to (product.discount_price ?: product.price)
                             )
@@ -470,7 +502,7 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun showReviewDialog() {
-        val reviewDialog = ReviewDialogFragment.newInstance()
+        val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
         reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
             override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
                 submitReview(rating, reviewText, imageUri)
@@ -479,13 +511,14 @@ class ProductDetailActivity : AppCompatActivity() {
         reviewDialog.show(supportFragmentManager, "ReviewDialog")
     }
 
+
     private fun submitReview(rating: Int, reviewText: String, imageUri: Uri?) {
         scope.launch {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id
                     ?: throw Exception("User not logged in")
 
-                val numericProductId = product.id!!
+                val productId = product.product_id // This should be String
 
                 // Upload image first if exists and get URL
                 val imageUrl = if (imageUri != null) {
@@ -496,7 +529,7 @@ class ProductDetailActivity : AppCompatActivity() {
 
                 val reviewData = buildMap<String, Any> {
                     put("user_id", userId)
-                    put("product_id", numericProductId)
+                    put("product_id", productId) // This should be String
                     put("rating", rating)
                     if (reviewText.isNotEmpty()) {
                         put("review_text", reviewText)
@@ -511,7 +544,7 @@ class ProductDetailActivity : AppCompatActivity() {
                         .select {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", numericProductId)
+                                eq("product_id", productId) // This should be String
                             }
                         }
                         .decodeList<Review>()
@@ -549,6 +582,7 @@ class ProductDetailActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private suspend fun uploadReviewImage(imageUri: Uri, userId: String): String {
         return withContext(Dispatchers.IO) {

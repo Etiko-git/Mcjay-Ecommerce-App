@@ -9,7 +9,14 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.DialogFragment
+import com.bumptech.glide.Glide
 import com.solih.mcjay.databinding.DialogReviewBinding
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ReviewDialogFragment : DialogFragment() {
 
@@ -20,8 +27,11 @@ class ReviewDialogFragment : DialogFragment() {
     private var reviewListener: ReviewSubmitListener? = null
     private lateinit var binding: DialogReviewBinding
     private var selectedImageUri: Uri? = null
+    private var productId: String? = null
+    private val supabase = com.solih.mcjay.SupabaseClientInstance.client
+    private val scope = CoroutineScope(Dispatchers.Main)
 
-    // Modern way to handle activity results - FIXED VERSION
+    // Modern way to handle activity results
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -29,6 +39,10 @@ class ReviewDialogFragment : DialogFragment() {
             selectedImageUri = it
             displaySelectedImage()
         }
+    }
+
+    fun setProductId(productId: String) {
+        this.productId = productId
     }
 
     fun setReviewListener(listener: ReviewSubmitListener) {
@@ -50,6 +64,7 @@ class ReviewDialogFragment : DialogFragment() {
         setupRatingBar()
         setupImageUpload()
         setupButtons()
+        loadExistingReview()
     }
 
     private fun setupRatingBar() {
@@ -111,6 +126,58 @@ class ReviewDialogFragment : DialogFragment() {
         }
     }
 
+    private fun loadExistingReview() {
+        scope.launch {
+            try {
+                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
+                val currentProductId = productId ?: return@launch
+
+                Log.d("ReviewDialog", "Loading existing review for user: $userId, product: $currentProductId")
+
+                val existingReview = withContext(Dispatchers.IO) {
+                    supabase.postgrest.from("reviews")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("product_id", currentProductId) // This should match your database type
+                            }
+                        }
+                        .decodeList<com.solih.mcjay.models.Review>()
+                        .firstOrNull()
+                }
+
+                if (existingReview != null) {
+                    Log.d("ReviewDialog", "Found existing review: ${existingReview.id}")
+                    withContext(Dispatchers.Main) {
+                        // Populate the form with existing review data
+                        binding.reviewRatingBar.rating = existingReview.rating.toFloat()
+                        binding.reviewEditText.setText(existingReview.review_text ?: "")
+                        binding.submitReviewButton.text = "Update Review"
+
+                        // Load existing image if available
+                        existingReview.review_image_url?.let { imageUrl ->
+                            if (imageUrl.isNotEmpty()) {
+                                Glide.with(requireContext())
+                                    .load(imageUrl)
+                                    .placeholder(com.solih.mcjay.R.drawable.placeholder_image)
+                                    .into(binding.reviewImagePreview)
+                                binding.reviewImagePreview.visibility = View.VISIBLE
+                                binding.removeImageButton.visibility = View.VISIBLE
+                                binding.uploadImageButton.text = "Change Image"
+                            }
+                        }
+                    }
+                } else {
+                    Log.d("ReviewDialog", "No existing review found")
+                }
+
+            } catch (e: Exception) {
+                Log.e("ReviewDialog", "Error loading existing review: ${e.message}", e)
+                // Don't show error to user - just proceed with empty form
+            }
+        }
+    }
+
     private fun submitReview() {
         val rating = binding.reviewRatingBar.rating.toInt()
         val reviewText = binding.reviewEditText.text.toString().trim()
@@ -127,8 +194,10 @@ class ReviewDialogFragment : DialogFragment() {
     }
 
     companion object {
-        fun newInstance(): ReviewDialogFragment {
-            return ReviewDialogFragment()
+        fun newInstance(productId: String): ReviewDialogFragment {
+            val fragment = ReviewDialogFragment()
+            fragment.setProductId(productId)
+            return fragment
         }
     }
 }
