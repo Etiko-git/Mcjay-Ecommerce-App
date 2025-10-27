@@ -20,6 +20,7 @@ import com.solih.mcjay.adapters.ImageSliderAdapter
 import com.solih.mcjay.adapters.ReviewsAdapter
 import com.solih.mcjay.adapters.SimilarProductsAdapter
 import com.solih.mcjay.databinding.ActivityProductDetailBinding
+import com.solih.mcjay.fragments.ReviewDialogFragment
 import com.solih.mcjay.models.Product
 import com.solih.mcjay.models.Review
 import io.github.jan.supabase.auth.auth
@@ -255,6 +256,18 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun loadReviews() {
         scope.launch {
             try {
+                Log.d("ProductDetail", "Loading reviews for product ID: ${product.id}")
+                Log.d("ProductDetail", "Product string ID: ${product.product_id}")
+
+                // First, let's check if there are any reviews at all in the database
+                val allReviews = withContext(Dispatchers.IO) {
+                    supabase.postgrest.from("reviews")
+                        .select()
+                        .decodeList<Review>()
+                }
+                Log.d("ProductDetail", "Total reviews in database: ${allReviews.size}")
+
+                // Now get reviews for this specific product
                 val reviews = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("reviews")
                         .select {
@@ -264,17 +277,37 @@ class ProductDetailActivity : AppCompatActivity() {
                         .decodeList<Review>()
                 }
 
-                reviewsList.clear()
-                reviewsList.addAll(reviews)
-                reviewsAdapter.notifyDataSetChanged()
+                Log.d("ProductDetail", "Loaded ${reviews.size} reviews for product ${product.id}")
 
-                binding.reviewsSection.visibility = if (reviewsList.isEmpty()) View.GONE else View.VISIBLE
-                binding.noReviewsText.visibility = if (reviewsList.isEmpty()) View.VISIBLE else View.GONE
+                // Log each review to see what we're getting
+                reviews.forEachIndexed { index, review ->
+                    Log.d("ProductDetail", "Review $index: ID=${review.id}, User=${review.user_id}, Rating=${review.rating}, ProductID=${review.product_id}")
+                }
+
+                withContext(Dispatchers.Main) {
+                    reviewsList.clear()
+                    reviewsList.addAll(reviews)
+                    reviewsAdapter.notifyDataSetChanged()
+
+                    if (reviewsList.isEmpty()) {
+                        binding.reviewsSection.visibility = View.GONE
+                        binding.noReviewsText.visibility = View.VISIBLE
+                        binding.noReviewsText.text = "No reviews yet. Be the first to review!"
+                        Log.d("ProductDetail", "No reviews found for this product")
+                    } else {
+                        binding.reviewsSection.visibility = View.VISIBLE
+                        binding.noReviewsText.visibility = View.GONE
+                        Log.d("ProductDetail", "Displaying ${reviewsList.size} reviews")
+                    }
+                }
 
             } catch (e: Exception) {
-                Log.e("ProductDetail", "Error loading reviews: ${e.message}")
-                binding.noReviewsText.visibility = View.VISIBLE
-                binding.noReviewsText.text = "Error loading reviews"
+                Log.e("ProductDetail", "Error loading reviews: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    binding.noReviewsText.visibility = View.VISIBLE
+                    binding.noReviewsText.text = "Error loading reviews: ${e.message}"
+                    binding.reviewsSection.visibility = View.GONE
+                }
             }
         }
     }
@@ -437,115 +470,16 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun showReviewDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_review, null)
-        val dialog = BottomSheetDialog(this)
-        dialog.setContentView(dialogView)
-
-        val ratingBar: RatingBar = dialogView.findViewById(R.id.review_rating_bar)
-        val reviewEditText: EditText = dialogView.findViewById(R.id.review_edit_text)
-        val submitButton: Button = dialogView.findViewById(R.id.submit_review_button)
-        val cancelButton: Button = dialogView.findViewById(R.id.cancel_review_button)
-        val uploadImageButton: Button = dialogView.findViewById(R.id.upload_image_button)
-        val removeImageButton: Button = dialogView.findViewById(R.id.remove_image_button)
-        val reviewImagePreview: ImageView = dialogView.findViewById(R.id.review_image_preview)
-
-        var selectedImageUri: Uri? = null
-        var existingReview: Review? = null
-
-        // Modern image picker
-        val pickImageLauncher = registerForActivityResult(
-            ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            uri?.let {
-                selectedImageUri = it
-                reviewImagePreview.setImageURI(uri)
-                reviewImagePreview.visibility = View.VISIBLE
-                removeImageButton.visibility = View.VISIBLE
-                uploadImageButton.text = "Change Image"
+        val reviewDialog = ReviewDialogFragment.newInstance()
+        reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
+            override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
+                submitReview(rating, reviewText, imageUri)
             }
-        }
-
-        // Setup image upload functionality
-        uploadImageButton.setOnClickListener {
-            pickImageLauncher.launch("image/*")
-        }
-
-        removeImageButton.setOnClickListener {
-            selectedImageUri = null
-            reviewImagePreview.visibility = View.GONE
-            removeImageButton.visibility = View.GONE
-            uploadImageButton.text = "Choose Image"
-            reviewImagePreview.setImageURI(null)
-        }
-
-        // Check if user already reviewed this product
-        scope.launch {
-            try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
-
-                existingReview = withContext(Dispatchers.IO) {
-                    supabase.postgrest.from("reviews")
-                        .select {
-                            filter {
-                                eq("user_id", userId)
-                                eq("product_id", product.id!!)
-                            }
-                        }
-                        .decodeList<Review>()
-                        .firstOrNull()
-                }
-
-                val currentReview = existingReview
-                if (currentReview != null) {
-                    withContext(Dispatchers.Main) {
-                        ratingBar.rating = currentReview.rating.toFloat()
-                        reviewEditText.setText(currentReview.review_text ?: "")
-                        submitButton.text = "Update Review"
-
-                        // Load existing review image if any
-                        currentReview.review_image_url?.let { imageUrl ->
-                            if (imageUrl.isNotEmpty()) {
-                                Glide.with(this@ProductDetailActivity)
-                                    .load(imageUrl)
-                                    .into(reviewImagePreview)
-                                reviewImagePreview.visibility = View.VISIBLE
-                                removeImageButton.visibility = View.VISIBLE
-                                uploadImageButton.text = "Change Image"
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ProductDetail", "Error checking existing review: ${e.message}")
-            }
-        }
-
-        submitButton.setOnClickListener {
-            val rating = ratingBar.rating.toInt()
-            val reviewText = reviewEditText.text.toString().trim()
-
-            if (rating == 0) {
-                Toast.makeText(this, "Please select a rating", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            submitReview(rating, reviewText, selectedImageUri, existingReview, dialog)
-        }
-
-        cancelButton.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
+        })
+        reviewDialog.show(supportFragmentManager, "ReviewDialog")
     }
 
-    private fun submitReview(
-        rating: Int,
-        reviewText: String,
-        imageUri: Uri?,
-        existingReview: Review?,
-        dialog: BottomSheetDialog
-    ) {
+    private fun submitReview(rating: Int, reviewText: String, imageUri: Uri?) {
         scope.launch {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id
@@ -557,7 +491,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 val imageUrl = if (imageUri != null) {
                     uploadReviewImage(imageUri, userId)
                 } else {
-                    existingReview?.review_image_url // Keep existing image if no new image selected
+                    null
                 }
 
                 val reviewData = buildMap<String, Any> {
@@ -569,6 +503,19 @@ class ProductDetailActivity : AppCompatActivity() {
                     }
                     imageUrl?.let { put("review_image_url", it) }
                     put("updated_at", "now()")
+                }
+
+                // Check if user already has a review for this product
+                val existingReview = withContext(Dispatchers.IO) {
+                    supabase.postgrest.from("reviews")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("product_id", numericProductId)
+                            }
+                        }
+                        .decodeList<Review>()
+                        .firstOrNull()
                 }
 
                 if (existingReview != null) {
@@ -591,9 +538,8 @@ class ProductDetailActivity : AppCompatActivity() {
                     Toast.makeText(this@ProductDetailActivity, "Review submitted successfully!", Toast.LENGTH_SHORT).show()
                 }
 
-                // Reload reviews and close dialog
+                // Reload reviews
                 loadReviews()
-                dialog.dismiss()
 
             } catch (e: Exception) {
                 Log.e("ProductDetail", "Error submitting review: ${e.message}", e)
