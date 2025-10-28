@@ -10,5 +10,13 @@
     <string name="discount_percent">%d%% OFF</string>
     <string name="out_of_stock">Out of Stock</string>
     <string name="product_unavailable">This product is currently unavailable</string>
+
+    <string name="product_image_desc">Product image</string>
+    <string name="low_stock">Low Stock</string>
+    <string name="decrease_quantity">Decrease quantity</string>
+    <string name="increase_quantity">Increase quantity</string>
+    <string name="remove_item">Remove item from cart</string>
+    <string name="default_quantity">1</string>
+    <string name="total_label">TOTAL</string>
 </resources>
 

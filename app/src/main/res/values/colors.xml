@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_50">#F3E5F5</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
@@ -19,11 +20,19 @@
      <color name="chip_text_color">#FFFFFFFF</color>
      <color name="chip_selected_text">#FF000000</color>
     <color name="gray_light">#F5F5F5</color>
+    <color name="gray_400">#BDBDBD</color>
     <color name="amber_600">#FFB300</color>
     <color name="green_600">#43A047</color>
     <color name="green_500">#FF4CAF50</color>
-    <color name="gray_300">#FFE0E0E0</color>
-
+    <color name="gray_50">#FAFAFA</color>
+    <color name="gray_100">#F5F5F5</color>
+    <color name="gray_200">#EEEEEE</color>
+    <color name="gray_300">#E0E0E0</color>
+    <color name="gray_500">#9E9E9E</color>
+    <color name="gray_600">#757575</color>
+    <color name="transparent">#00000000</color>
+    <color name="purple_800">#6A1B9A</color>
+    <color name="gray_700">#616161</color>
 
 
  </resources>

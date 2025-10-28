@@ -21,11 +21,14 @@ import com.solih.mcjay.adapters.ReviewsAdapter
 import com.solih.mcjay.adapters.SimilarProductsAdapter
 import com.solih.mcjay.databinding.ActivityProductDetailBinding
 import com.solih.mcjay.fragments.ReviewDialogFragment
+import com.solih.mcjay.models.CartItem
 import com.solih.mcjay.models.Product
 import com.solih.mcjay.models.Review
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +84,9 @@ class ProductDetailActivity : AppCompatActivity() {
         return withContext(Dispatchers.IO) {
             val products = supabase.postgrest.from("products")
                 .select {
-                    filter { eq("product_id", productIdStr) }
+                    filter {
+                        eq("product_id", productIdStr)
+                    }
                 }
                 .decodeList<Product>()
 
@@ -106,6 +111,7 @@ class ProductDetailActivity : AppCompatActivity() {
             if (quantity > 1) {
                 quantity--
                 binding.quantityText.text = quantity.toString()
+                updateAddToCartButtonState()
             }
         }
 
@@ -113,6 +119,7 @@ class ProductDetailActivity : AppCompatActivity() {
             if (quantity < product.stock_quantity) {
                 quantity++
                 binding.quantityText.text = quantity.toString()
+                updateAddToCartButtonState()
             } else {
                 Toast.makeText(this, "Only ${product.stock_quantity} available", Toast.LENGTH_SHORT).show()
             }
@@ -133,6 +140,28 @@ class ProductDetailActivity : AppCompatActivity() {
 
         // Setup image slider dots
         setupImageSlider()
+
+        // Initial button state
+        updateAddToCartButtonState()
+    }
+
+    private fun updateAddToCartButtonState() {
+        val isOutOfStock = product.stock_quantity == 0
+        val exceedsStock = quantity > product.stock_quantity
+
+        if (isOutOfStock) {
+            binding.addToCartButton.text = "Out of Stock"
+            binding.addToCartButton.isEnabled = false
+            binding.addToCartButton.setBackgroundColor(ContextCompat.getColor(this, R.color.gray))
+        } else if (exceedsStock) {
+            binding.addToCartButton.text = "Exceeds Stock"
+            binding.addToCartButton.isEnabled = false
+            binding.addToCartButton.setBackgroundColor(ContextCompat.getColor(this, R.color.error_color))
+        } else {
+            binding.addToCartButton.text = "Add to Cart"
+            binding.addToCartButton.isEnabled = true
+            binding.addToCartButton.setBackgroundColor(ContextCompat.getColor(this, R.color.error_color))
+        }
     }
 
     private fun setupRecyclerViews() {
@@ -228,18 +257,29 @@ class ProductDetailActivity : AppCompatActivity() {
         binding.productName.text = product.name
         binding.productDescription.text = product.description ?: "No description available"
         binding.productCategory.text = "Category: ${product.category}"
-        binding.productStock.text = "Stock: ${product.stock_quantity} available"
+
+        // Update stock display
+        if (product.stock_quantity == 0) {
+            binding.productStock.text = "Out of Stock"
+            binding.productStock.setTextColor(ContextCompat.getColor(this, R.color.error_color))
+        } else if (product.stock_quantity < 5) {
+            binding.productStock.text = "Only ${product.stock_quantity} left in stock!"
+            binding.productStock.setTextColor(ContextCompat.getColor(this, R.color.error_color))
+        } else {
+            binding.productStock.text = "In Stock (${product.stock_quantity} available)"
+            binding.productStock.setTextColor(ContextCompat.getColor(this, R.color.green_500))
+        }
 
         // Handle pricing
         if (product.hasDiscount() && product.discount_price != null) {
-            binding.productPrice.text = "$${product.price}"
+            binding.productPrice.text = "$${String.format("%.2f", product.price)}"
             binding.productPrice.paintFlags = android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
-            binding.discountPrice.text = "$${product.discount_price}"
+            binding.discountPrice.text = "$${String.format("%.2f", product.discount_price)}"
             binding.discountPrice.visibility = View.VISIBLE
             binding.discountBadge.text = "${product.getDiscountPercentage()}% OFF"
             binding.discountBadge.visibility = View.VISIBLE
         } else {
-            binding.productPrice.text = "$${product.price}"
+            binding.productPrice.text = "$${String.format("%.2f", product.price)}"
             binding.discountPrice.visibility = View.GONE
             binding.discountBadge.visibility = View.GONE
         }
@@ -311,37 +351,6 @@ class ProductDetailActivity : AppCompatActivity() {
         }
     }
 
-
-
-    private fun debugVisibilityChanges() {
-        // Add visibility change listeners to see when they're being modified
-        binding.reviewsSection.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-            Log.d("ProductDetail", "Reviews section layout changed - visibility: ${v.visibility}")
-        }
-
-        // Also log when loadReviews is called
-        Log.d("ProductDetail", "loadReviews() called - current visibility: ${binding.reviewsSection.visibility}")
-    }
-    private fun forceReviewsSectionVisible() {
-        // This will override any visibility changes for debugging
-        binding.reviewsSection.visibility = View.VISIBLE
-        binding.reviewsSection.postDelayed({
-            Log.d("ProductDetail", "Forced visibility check - current: ${binding.reviewsSection.visibility}")
-            if (binding.reviewsSection.visibility != View.VISIBLE) {
-                binding.reviewsSection.visibility = View.VISIBLE
-                Log.d("ProductDetail", "Visibility was changed - reset to VISIBLE")
-            }
-        }, 1000)
-
-        binding.reviewsSection.postDelayed({
-            Log.d("ProductDetail", "Second visibility check - current: ${binding.reviewsSection.visibility}")
-            if (binding.reviewsSection.visibility != View.VISIBLE) {
-                binding.reviewsSection.visibility = View.VISIBLE
-                Log.d("ProductDetail", "Visibility was changed again - reset to VISIBLE")
-            }
-        }, 3000)
-    }
-
     private fun loadSimilarProducts() {
         scope.launch {
             try {
@@ -351,6 +360,7 @@ class ProductDetailActivity : AppCompatActivity() {
                             filter {
                                 eq("category", product.category)
                                 neq("product_id", product.product_id)
+                                gt("stock_quantity", 0) // Only show in-stock similar products
                             }
                             limit(10)
                         }
@@ -365,6 +375,7 @@ class ProductDetailActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 Log.e("ProductDetail", "Error loading similar products: ${e.message}")
+                binding.similarProductsSection.visibility = View.GONE
             }
         }
     }
@@ -456,61 +467,125 @@ class ProductDetailActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // Check if product already exists in cart - CHANGED: Use string product_id
+                Log.d("CartDebug", "Starting addToCart - User: $userId, Product ID: ${product.id}, Quantity: $quantity")
+
+                // Check stock first
+                if (quantity > product.stock_quantity) {
+                    Toast.makeText(this@ProductDetailActivity, "Only ${product.stock_quantity} available in stock", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Use product.id (integer) for cart operations
                 val existingCartItems = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("cart").select {
                         filter {
                             eq("user_id", userId)
-                            eq("product_id", product.product_id) // CHANGED: Use string product_id
+                            eq("product_id", product.id!!) // Use integer product.id
                         }
-                    }.decodeList<Map<String, Any>>()
+                    }.decodeList<CartItem>()
                 }
 
+                Log.d("CartDebug", "Found ${existingCartItems.size} existing cart items")
+
                 if (existingCartItems.isNotEmpty()) {
-                    val item = existingCartItems[0]
-                    val currentQuantity = (item["quantity"] as? Number)?.toInt() ?: 0
-                    val cartItemId = item["id"]?.toString() ?: ""
+                    val existingItem = existingCartItems[0]
+                    val newQuantity = existingItem.quantity + quantity
+
+                    if (newQuantity > product.stock_quantity) {
+                        Toast.makeText(this@ProductDetailActivity, "Cannot add more than available stock. You already have ${existingItem.quantity} in cart", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
 
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("cart").update(
-                            mapOf("quantity" to (currentQuantity + quantity))
+                            mapOf(
+                                "quantity" to newQuantity
+                            )
                         ) {
-                            filter { eq("id", cartItemId) }
+                            filter { eq("id", existingItem.id!!) }
                         }
                     }
+                    Toast.makeText(this@ProductDetailActivity, "Updated quantity to $newQuantity", Toast.LENGTH_SHORT).show()
+                    Log.d("CartDebug", "Updated cart item quantity to $newQuantity")
                 } else {
-                    // CHANGED: Use string product_id for cart
-                    withContext(Dispatchers.IO) {
-                        supabase.postgrest.from("cart").insert(
-                            mapOf(
-                                "user_id" to userId,
-                                "product_id" to product.product_id, // CHANGED: Use string product_id
-                                "quantity" to quantity,
-                                "price" to (product.discount_price ?: product.price)
-                            )
-                        )
+                    if (quantity > product.stock_quantity) {
+                        Toast.makeText(this@ProductDetailActivity, "Only ${product.stock_quantity} available in stock", Toast.LENGTH_SHORT).show()
+                        return@launch
                     }
+
+                    // Create a CartItem object instead of using mapOf()
+                    val cartItem = CartItem(
+                        user_id = userId,
+                        product_id = product.id!!,
+                        quantity = quantity,
+                        price = (product.discount_price ?: product.price).toDouble()
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        supabase.postgrest.from("cart").insert(cartItem)
+                    }
+                    Toast.makeText(this@ProductDetailActivity, "Added $quantity ${product.name} to cart", Toast.LENGTH_LONG).show()
+                    Log.d("CartDebug", "Added new item to cart successfully")
                 }
 
-                Toast.makeText(this@ProductDetailActivity, "Added $quantity ${product.name} to cart", Toast.LENGTH_LONG).show()
-
             } catch (e: Exception) {
+                Log.e("CartDebug", "Error adding to cart: ${e.message}", e)
                 Toast.makeText(this@ProductDetailActivity, "Error adding to cart: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("ProductDetail", "Error adding to cart: ${e.message}")
             }
         }
     }
-
     private fun showReviewDialog() {
-        val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
-        reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
-            override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
-                submitReview(rating, reviewText, imageUri)
-            }
-        })
-        reviewDialog.show(supportFragmentManager, "ReviewDialog")
-    }
+        val userId = supabase.auth.currentUserOrNull()?.id
+        if (userId == null) {
+            Toast.makeText(this, "Please login to write a review", Toast.LENGTH_SHORT).show()
+            return
+        }
 
+        // Check if user has purchased this product
+        scope.launch {
+            try {
+                val hasPurchased = withContext(Dispatchers.IO) {
+                    val orders = supabase.postgrest.from("order_items")
+                        .select {
+                            filter {
+                                eq("product_id", product.id!!)
+                                eq("orders.user_id", userId)
+                                eq("orders.status", "delivered")
+                            }
+                        }
+                        .decodeList<Map<String, Any>>()
+
+                    orders.isNotEmpty()
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (hasPurchased) {
+                        val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
+                        reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
+                            override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
+                                submitReview(rating, reviewText, imageUri)
+                            }
+                        })
+                        reviewDialog.show(supportFragmentManager, "ReviewDialog")
+                    } else {
+                        Toast.makeText(this@ProductDetailActivity, "You need to purchase this product before reviewing", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Log.e("ProductDetail", "Error checking purchase status: ${e.message}")
+                    // Fallback - allow review without purchase check
+                    val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
+                    reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
+                        override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
+                            submitReview(rating, reviewText, imageUri)
+                        }
+                    })
+                    reviewDialog.show(supportFragmentManager, "ReviewDialog")
+                }
+            }
+        }
+    }
 
     private fun submitReview(rating: Int, reviewText: String, imageUri: Uri?) {
         scope.launch {
@@ -582,7 +657,6 @@ class ProductDetailActivity : AppCompatActivity() {
             }
         }
     }
-
 
     private suspend fun uploadReviewImage(imageUri: Uri, userId: String): String {
         return withContext(Dispatchers.IO) {

@@ -15,7 +15,7 @@ import com.solih.mcjay.models.Product
 
 class CartAdapter(
     private val cartItems: List<CartItem>,
-    private val products: Map<String, Product>, // Changed to Map<String, Product>
+    private val products: Map<Int, Product>, // Map<Int, Product> for integer product_id
     private val onItemAction: (CartItem, String) -> Unit
 ) : RecyclerView.Adapter<CartAdapter.ViewHolder>() {
 
@@ -39,63 +39,39 @@ class CartAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val cartItem = cartItems[position]
-        val product = products[cartItem.product_id] // Direct string lookup
+        val product = products[cartItem.product_id] // Integer lookup
 
         if (product == null) {
-            // Hide or show placeholder if product not found
             holder.nameTextView.text = "Product not available"
             holder.priceTextView.text = "$0.00"
             holder.totalPriceTextView.text = "$0.00"
             holder.quantityTextView.text = cartItem.quantity.toString()
-
-            // Disable buttons if product not found
             holder.increaseButton.isEnabled = false
             holder.decreaseButton.isEnabled = false
-            holder.removeButton.isEnabled = true // Still allow removal
+            holder.removeButton.isEnabled = true
 
-            // Set placeholder image
             Glide.with(holder.itemView.context)
                 .load(R.drawable.placeholder_image)
                 .into(holder.imageView)
-
             return
         }
 
-        // Load product image
         Glide.with(holder.itemView.context)
             .load(product.getFirstImageUrl())
             .placeholder(R.drawable.placeholder_image)
             .into(holder.imageView)
 
         holder.nameTextView.text = product.name
-
-        // Calculate price - use discount price if available
         val unitPrice = product.discount_price ?: product.price
         holder.priceTextView.text = "$${String.format("%.2f", unitPrice)}"
-
         holder.quantityTextView.text = cartItem.quantity.toString()
 
-        // Calculate total price for this item
         val totalPrice = unitPrice * cartItem.quantity
         holder.totalPriceTextView.text = "$${String.format("%.2f", totalPrice)}"
 
-        // Set click listeners
-        holder.increaseButton.setOnClickListener {
-            onItemAction(cartItem, "increase")
-        }
-
-        holder.decreaseButton.setOnClickListener {
-            onItemAction(cartItem, "decrease")
-        }
-
-        holder.removeButton.setOnClickListener {
-            onItemAction(cartItem, "remove")
-        }
-
-        // Whole item click
-        holder.cardView.setOnClickListener {
-            // You can add navigation to product detail here if needed
-        }
+        holder.increaseButton.setOnClickListener { onItemAction(cartItem, "increase") }
+        holder.decreaseButton.setOnClickListener { onItemAction(cartItem, "decrease") }
+        holder.removeButton.setOnClickListener { onItemAction(cartItem, "remove") }
     }
 
     override fun getItemCount() = cartItems.size

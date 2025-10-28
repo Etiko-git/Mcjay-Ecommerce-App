@@ -25,7 +25,7 @@ class CartFragment : Fragment() {
     private lateinit var binding: FragmentCartBinding
     private lateinit var cartAdapter: CartAdapter
     private val cartItems = mutableListOf<CartItem>()
-    private val productsMap = mutableMapOf<String, Product>() // Changed to Map<String, Product>
+    private val productsMap = mutableMapOf<Int, Product>() // Changed to Map<Int, Product>
     private val supabase = com.solih.mcjay.SupabaseClientInstance.client
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -97,33 +97,42 @@ class CartFragment : Fragment() {
                     return@launch
                 }
 
-                // Get product IDs from cart items
+                // Get product IDs from cart items (these are now integers)
                 val productIds = cartItemsList.map { it.product_id }.distinct()
 
-                // Fetch product details for cart items using string product_id
+                Log.d("CartFragment", "Loading products for IDs: $productIds")
+
+                // Fetch product details for cart items using integer product ID
                 val products = mutableListOf<Product>()
                 for (productId in productIds) {
                     try {
                         val productList = withContext(Dispatchers.IO) {
                             supabase.postgrest["products"]
                                 .select {
-                                    filter { eq("product_id", productId) } // Use product_id string
+                                    filter { eq("id", productId) } // Use integer ID
                                 }
                                 .decodeList<Product>()
                         }
                         if (productList.isNotEmpty()) {
                             products.add(productList[0])
+                            Log.d("CartFragment", "Loaded product: ${productList[0].name} (ID: ${productList[0].id})")
+                        } else {
+                            Log.w("CartFragment", "No product found for ID: $productId")
                         }
                     } catch (e: Exception) {
                         Log.e("CartFragment", "Error fetching product $productId: ${e.message}")
                     }
                 }
 
-                // Create products map with string keys
+                // Create products map with integer keys
                 productsMap.clear()
                 products.forEach { product ->
-                    productsMap[product.product_id] = product // Use product_id string as key
+                    product.id?.let { productId ->
+                        productsMap[productId] = product // Use integer product.id as key
+                    }
                 }
+
+                Log.d("CartFragment", "Products map size: ${productsMap.size}")
 
                 // Update cart items
                 cartItems.clear()
@@ -138,6 +147,7 @@ class CartFragment : Fragment() {
                 } else {
                     binding.emptyState.visibility = View.GONE
                     binding.cartRecyclerView.visibility = View.VISIBLE
+                    Log.d("CartFragment", "Displaying ${cartItems.size} cart items")
                 }
 
             } catch (e: Exception) {
@@ -155,7 +165,7 @@ class CartFragment : Fragment() {
             return
         }
 
-        // Check stock availability
+        // Check stock availability - now using integer key
         val product = productsMap[cartItem.product_id]
         if (product != null && newQuantity > product.stock_quantity) {
             Toast.makeText(requireContext(), "Only ${product.stock_quantity} items available", Toast.LENGTH_SHORT).show()
@@ -230,13 +240,15 @@ class CartFragment : Fragment() {
         var total = 0.0
 
         cartItems.forEach { cartItem ->
-            val product = productsMap[cartItem.product_id]
+            val product = productsMap[cartItem.product_id] // Integer lookup
             val unitPrice = product?.discount_price ?: product?.price ?: 0.0
             total += unitPrice * cartItem.quantity
         }
 
         binding.totalPrice.text = "$${String.format("%.2f", total)}"
         binding.checkoutButton.isEnabled = cartItems.isNotEmpty()
+
+        Log.d("CartFragment", "Total price updated: $$total")
     }
 
     private fun showEmptyState(message: String) {
@@ -255,7 +267,7 @@ class CartFragment : Fragment() {
 
         // Check if all items are in stock
         val outOfStockItems = cartItems.filter { cartItem ->
-            val product = productsMap[cartItem.product_id]
+            val product = productsMap[cartItem.product_id] // Integer lookup
             product == null || cartItem.quantity > product.stock_quantity
         }
 
