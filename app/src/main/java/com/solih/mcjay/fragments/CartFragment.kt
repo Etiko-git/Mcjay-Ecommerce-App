@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.solih.mcjay.R
 import com.solih.mcjay.adapters.CartAdapter
@@ -62,7 +63,13 @@ class CartFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.checkoutButton.setOnClickListener {
-            proceedToCheckout()
+            // Use fragment transaction to replace current fragment
+            val checkoutFragment = CheckoutFragment.newInstance()
+
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, checkoutFragment) // Use your container ID
+                .addToBackStack("checkout") // This allows back navigation
+                .commit()
         }
 
         binding.continueShoppingButton.setOnClickListener {
@@ -235,6 +242,7 @@ class CartFragment : Fragment() {
             }
         }
     }
+
 
     private fun updateTotalPrice() {
         var total = 0.0

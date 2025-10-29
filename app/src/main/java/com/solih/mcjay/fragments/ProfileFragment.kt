@@ -102,31 +102,64 @@ class ProfileFragment : Fragment() {
             try {
                 showLoading(true)
 
-                val user = supabase.auth.currentUserOrNull()
-                if (user == null) {
+                val authUser = supabase.auth.currentUserOrNull()
+                if (authUser == null) {
                     showLoginRequired()
                     return@launch
                 }
 
-                currentUser = withContext(Dispatchers.IO) {
+                // First, check if user exists in the users table
+                val users = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("users")
                         .select {
-                            // Use the filter function with eq
                             filter {
-                                eq("id", user.id)
+                                eq("id", authUser.id)
                             }
                         }
-                        .decodeSingle<User>()
+                        .decodeList<User>()
                 }
 
-                currentUser?.let { updateUI(it) }
+                if (users.isEmpty()) {
+                    // User doesn't exist in users table, create a new entry
+                    createUserProfile(authUser.id, authUser.email ?: "")
+                } else {
+                    // User exists, load the profile
+                    currentUser = users.first()
+                    updateUI(currentUser!!)
+                }
 
             } catch (e: Exception) {
+                Log.e("ProfileFragment", "Error loading profile: ${e.message}", e)
                 Toast.makeText(requireContext(), "Error loading profile: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("ProfileFragment", "Error loading profile", e)
             } finally {
                 showLoading(false)
             }
+        }
+    }
+
+    private suspend fun createUserProfile(userId: String, email: String) {
+        try {
+            // Create a new user profile with basic info
+            val newUser = withContext(Dispatchers.IO) {
+                supabase.postgrest.from("users").insert(
+                    mapOf(
+                        "id" to userId,
+                        "email" to email,
+                        "username" to email.substringBefore("@"), // Generate username from email
+                        "created_at" to "now()"
+                    )
+                ) {
+                    select()
+                }.decodeSingle<User>()
+            }
+
+            currentUser = newUser
+            updateUI(newUser)
+            Toast.makeText(requireContext(), "Profile created successfully", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            Log.e("ProfileFragment", "Error creating user profile: ${e.message}", e)
+            Toast.makeText(requireContext(), "Error creating profile: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -249,8 +282,9 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showEditProfileDialog() {
-        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
         val user = currentUser ?: return
+
+        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
 
         // Pre-fill current data
         dialogBinding.nameEditText.setText(user.name ?: "")
@@ -323,8 +357,15 @@ class ProfileFragment : Fragment() {
             try {
                 supabase.auth.signOut()
                 Toast.makeText(requireContext(), "Logged out successfully", Toast.LENGTH_SHORT).show()
-                // You might want to navigate to login screen or refresh the UI
-                loadUserProfile()
+                // Reset the UI after logout
+                currentUser = null
+                binding.tvUserName.text = "User Name"
+                binding.tvUserEmail.text = "user@example.com"
+                binding.tvPhone.text = "Not set"
+                binding.tvAddress.text = "Not set"
+                binding.profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+                binding.completeProfileCard.visibility = View.GONE
+                binding.btnEditProfile.visibility = View.GONE
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error logging out: ${e.message}", Toast.LENGTH_SHORT).show()
                 Log.e("ProfileFragment", "Error logging out", e)

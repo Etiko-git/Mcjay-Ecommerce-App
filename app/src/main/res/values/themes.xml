@@ -57,5 +57,25 @@
         <item name="cornerSize">50%</item>
     </style>
 
+    <style name="Widget.McJay.Button.Filled" parent="Widget.Material3.Button">
+    <item name="backgroundTint">@color/purple_500</item>
+    <item name="android:textColor">@color/white</item>
+    <item name="cornerRadius">8dp</item>
+    </style>
 
+
+    <!-- Custom Material Button Styles -->
+    <style name="Widget.McJay.Button.FilledButton" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/purple_500</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingVertical">16dp</item>
+        <item name="android:elevation">2dp</item>
+    </style>
+
+    <style name="Widget.McJay.Button.OutlinedButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/purple_200</item>
+        <item name="android:textColor">@color/purple_700</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
 </resources>
