@@ -3,20 +3,35 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/cartFragment">
+    app:startDestination="@id/homeFragment">
 
+    <!-- Home Fragment -->
     <fragment
-        android:id="@+id/cartFragment"
-        android:name="com.solih.mcjay.fragments.CartFragment"
-        android:label="Cart">
-        <action
-            android:id="@+id/action_cartFragment_to_checkoutFragment"
-            app:destination="@id/checkoutFragment" />
-    </fragment>
+        android:id="@+id/homeFragment"
+        android:name="com.solih.mcjay.fragments.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home" />
 
+    <!-- Checkout Fragment -->
     <fragment
         android:id="@+id/checkoutFragment"
         android:name="com.solih.mcjay.fragments.CheckoutFragment"
-        android:label="Checkout" />
+        android:label="Checkout"
+        tools:layout="@layout/fragment_checkout" />
+
+    <!-- Order Summary Fragment -->
+    <fragment
+        android:id="@+id/orderSummaryFragment"
+        android:name="com.solih.mcjay.fragments.OrderSummaryFragment"
+        android:label="Order Summary"
+        tools:layout="@layout/fragment_order_summary">
+
+        <argument
+            android:name="order_id"
+            app:argType="integer" />
+        <argument
+            android:name="order_number"
+            app:argType="string" />
+    </fragment>
 
 </navigation>

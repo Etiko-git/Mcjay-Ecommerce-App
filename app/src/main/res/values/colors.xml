@@ -33,6 +33,6 @@
     <color name="transparent">#00000000</color>
     <color name="purple_800">#6A1B9A</color>
     <color name="gray_700">#616161</color>
-
+    <color name="success_green">#4CAF50</color>
 
  </resources>

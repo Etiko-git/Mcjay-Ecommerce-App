@@ -40,8 +40,7 @@ class HomeFragment : Fragment() {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     private lateinit var productAdapter: ProductAdapter
-    // Change this line in your class properties
-    private var favoriteSet = mutableSetOf<Int>() // Changed to Int for product.id
+    private var favoriteSet = mutableSetOf<Int>()
     private var isHeaderVisible = true
 
     override fun onCreateView(
@@ -97,7 +96,7 @@ class HomeFragment : Fragment() {
         }
     }
     private fun setupCategories() {
-        val categories = listOf("All", "Bags", "Shoes", "Electronics", "Clothing", "Home", "Jewelry", "Beauty", "Sports")
+        val categories = listOf("All", "Bags", "Shoes", "Electronics", "Clothing", "Jewelry", "Beauty", "Sports")
 
         binding.categoriesContainer.removeAllViews()
 
