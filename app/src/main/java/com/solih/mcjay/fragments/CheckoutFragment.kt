@@ -1,5 +1,6 @@
 package com.solih.mcjay.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.core.content.ContextCompat
 import com.google.android.material.card.MaterialCardView
+import com.solih.mcjay.activities.OrderSummaryActivity
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
@@ -38,6 +40,7 @@ import java.io.BufferedReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.coroutines.delay
 
 class CheckoutFragment : Fragment() {
 
@@ -296,7 +299,7 @@ class CheckoutFragment : Fragment() {
     private suspend fun createPaymentIntent(amount: Int): String? = withContext(Dispatchers.IO) {
         try {
             // ⚠️ Replace with your actual server address (ngrok or LAN)
-            val backendUrl = "http://10.0.2.2/mcj/create-payment-intent.php"
+            val backendUrl = "https://mcj-stripe-backend.onrender.com/create-payment-intent.php"
 
             val url = URL(backendUrl)
             val connection = url.openConnection() as HttpURLConnection
@@ -342,7 +345,7 @@ class CheckoutFragment : Fragment() {
 
     suspend fun fetchEphemeralKey(customerId: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = URL("http://10.0.2.2/mcj/create-ephemeral-key.php")
+            val url = URL("https://mcj-stripe-backend.onrender.com/create-ephemeral-key.php")
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
@@ -671,23 +674,36 @@ class CheckoutFragment : Fragment() {
     }
 
     private fun completeOrder(orderId: Int, orderNumber: String, message: String) {
+        Log.d("CheckoutFragment", "completeOrder called - Order ID: $orderId, Order Number: $orderNumber")
+
         binding.progressBar.visibility = View.GONE
         binding.btnPlaceOrder.isEnabled = true
         binding.btnPlaceOrder.text = "Place Order"
 
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
 
-        // Simple approach - navigate immediately without delay
-        try {
-            val bundle = Bundle().apply {
-                putInt("order_id", orderId)
-                putString("order_number", orderNumber)
+        // Add a small delay to ensure Toast is visible before navigation
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try {
+                Log.d("CheckoutFragment", "Attempting to start OrderSummaryActivity")
+
+                // Use Activity Intent
+                val intent = Intent(requireContext(), OrderSummaryActivity::class.java).apply {
+                    putExtra("order_id", orderId)
+                    putExtra("order_number", orderNumber)
+                    // Remove flags that might cause issues
+                    // flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+
+                Log.d("CheckoutFragment", "Starting activity with order ID: $orderId")
+                startActivity(intent)
+                Log.d("CheckoutFragment", "Activity started successfully")
+
+            } catch (e: Exception) {
+                Log.e("CheckoutFragment", "Error starting OrderSummaryActivity: ${e.message}", e)
+                Toast.makeText(requireContext(), "Error showing order summary: ${e.message}", Toast.LENGTH_LONG).show()
             }
-            findNavController().navigate(R.id.orderSummaryFragment, bundle)
-        } catch (e: Exception) {
-            Log.e("CheckoutFragment", "Navigation failed: ${e.message}", e)
-            Toast.makeText(requireContext(), "Order placed! Navigation failed.", Toast.LENGTH_LONG).show()
-        }
+        }, 1000) // 1 second delay to show the toast
     }
 
     companion object {

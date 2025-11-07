@@ -34,5 +34,10 @@
     <color name="purple_800">#6A1B9A</color>
     <color name="gray_700">#616161</color>
     <color name="success_green">#4CAF50</color>
+    <color name="orange">#FF9800</color>
+    <color name="blue">#2196F3</color>
+    <color name="info_blue">#03A9F4</color>
+    <color name="error_red">#F44336</color>
+    <color name="light_gray_background">#F8F9FA</color>
 
  </resources>

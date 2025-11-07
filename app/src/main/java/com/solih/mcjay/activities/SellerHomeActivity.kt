@@ -50,7 +50,8 @@ class SellerHomeActivity : AppCompatActivity() {
 
 
         binding.btnViewOrders.setOnClickListener {
-            Toast.makeText(this, "View Orders feature coming soon", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this@SellerHomeActivity, SellerOrdersActivity::class.java)
+            startActivity(intent)
         }
 
         binding.btnAddProduct.setOnClickListener {

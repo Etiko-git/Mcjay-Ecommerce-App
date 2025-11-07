@@ -14,5 +14,7 @@ data class OrderItem(
     val subtotal: Double,
     val item_status: String = "Pending",
     val created_at: String? = null,
-    val updated_at: String? = null
+    val updated_at: String? = null,
+    val product_name: String? = null,
+    val product_image_url: String? = null
 )

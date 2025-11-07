@@ -52,6 +52,18 @@
         <activity android:name=".activities.AddProductActivity" />
         <activity android:name=".activities.SellerProductsActivity" />
         <activity android:name=".activities.ProductDetailActivity" />
+        <activity
+            android:name=".activities.OrderSummaryActivity"
+            android:exported="false"
+         />
+        <activity
+            android:name=".activities.SellerOrdersActivity"
+            android:exported="false"
+           />
+        <activity
+            android:name=".activities.SellerOrderDetailActivity"
+            />
+
 
         <!-- Add this new entry for MyIDLoginActivity -->
 <!--        <activity-->
