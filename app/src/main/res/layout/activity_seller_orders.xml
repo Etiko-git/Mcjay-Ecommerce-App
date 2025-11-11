@@ -108,39 +108,39 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    app:cardCornerRadius="8dp"
-                    app:cardElevation="2dp">
+<!--                <com.google.android.material.card.MaterialCardView-->
+<!--                    android:layout_width="0dp"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_weight="1"-->
+<!--                    app:cardCornerRadius="8dp"-->
+<!--                    app:cardElevation="2dp">-->
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center">
+<!--                    <LinearLayout-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:orientation="vertical"-->
+<!--                        android:padding="16dp"-->
+<!--                        android:gravity="center">-->
 
-                        <TextView
-                            android:id="@+id/tvTotalRevenue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="$0.00"
-                            android:textSize="18sp"
-                            android:textColor="@color/success_green"
-                            android:textStyle="bold" />
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvTotalRevenue"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="$0.00"-->
+<!--                            android:textSize="18sp"-->
+<!--                            android:textColor="@color/success_green"-->
+<!--                            android:textStyle="bold" />-->
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Revenue"
-                            android:textSize="12sp"
-                            android:textColor="@color/gray_600" />
+<!--                        <TextView-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="Revenue"-->
+<!--                            android:textSize="12sp"-->
+<!--                            android:textColor="@color/gray_600" />-->
 
-                    </LinearLayout>
+<!--                    </LinearLayout>-->
 
-                </com.google.android.material.card.MaterialCardView>
+<!--                </com.google.android.material.card.MaterialCardView>-->
 
             </LinearLayout>
 

@@ -39,5 +39,10 @@
     <color name="info_blue">#03A9F4</color>
     <color name="error_red">#F44336</color>
     <color name="light_gray_background">#F8F9FA</color>
+    <color name="purple">#9C27B0</color>
+    <color name="teal">#009688</color>
+    <color name="green">#4CAF50</color>
+    <color name="red">#F44336</color>
+
 
  </resources>

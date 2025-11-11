@@ -1,5 +1,6 @@
 package com.solih.mcjay.adapters
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,53 +8,77 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners
-import com.bumptech.glide.request.RequestOptions
 import com.solih.mcjay.R
 import com.solih.mcjay.models.OrderItem
+import com.solih.mcjay.models.Product
 
 class SellerOrderItemsAdapter(
-    private var orderItems: List<OrderItem>
-) : RecyclerView.Adapter<SellerOrderItemsAdapter.ViewHolder>() {
+    private var orderItems: List<OrderItem>,
+    private val productMap: Map<String, Product>
+) : RecyclerView.Adapter<SellerOrderItemsAdapter.OrderItemViewHolder>() {
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val ivProductImage: ImageView = itemView.findViewById(R.id.ivProductImage)
-        val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
-        val tvProductPrice: TextView = itemView.findViewById(R.id.tvProductPrice)
-        val tvQuantity: TextView = itemView.findViewById(R.id.tvQuantity)
-        val tvSubtotal: TextView = itemView.findViewById(R.id.tvSubtotal)
-    }
+    inner class OrderItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val ivProductImage: ImageView = itemView.findViewById(R.id.ivProductImage)
+        private val tvProductName: TextView = itemView.findViewById(R.id.tvProductName)
+        private val tvQuantity: TextView = itemView.findViewById(R.id.tvQuantity)
+        private val tvPrice: TextView = itemView.findViewById(R.id.tvPrice)
+        private val tvSubtotal: TextView = itemView.findViewById(R.id.tvSubtotal)
+        private val tvItemStatus: TextView = itemView.findViewById(R.id.tvItemStatus)
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_seller_order_product, parent, false)
-        return ViewHolder(view)
-    }
+        fun bind(orderItem: OrderItem) {
+            // Get product details from productMap
+            val product = productMap[orderItem.product_id]
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val orderItem = orderItems[position]
+            // Load product image using the getFirstImageUrl() method from Product class
+            val imageUrl = product?.getFirstImageUrl() ?: orderItem.product_image_url
+            if (!imageUrl.isNullOrEmpty()) {
+                Glide.with(itemView.context)
+                    .load(imageUrl)
+                    .placeholder(R.drawable.ic_product_placeholder)
+                    .error(R.drawable.ic_error)
+                    .into(ivProductImage)
+            } else {
+                ivProductImage.setImageResource(R.drawable.ic_product_placeholder)
+            }
 
-        // Load product image using Glide
-        if (!orderItem.product_image_url.isNullOrEmpty()) {
-            Glide.with(holder.itemView.context)
-                .load(orderItem.product_image_url)
-                .apply(RequestOptions()
-                    .transform(RoundedCorners(8))
-                    .placeholder(R.drawable.ic_image_placeholder) // Use your placeholder
-                    .error(R.drawable.error_image)) // Use your error image
-                .into(holder.ivProductImage)
-        } else {
-            // Set placeholder if no image URL
-            holder.ivProductImage.setImageResource(R.drawable.ic_image_placeholder)
+            // Set product name - prioritize product name from productMap, fallback to orderItem
+            val productName = product?.name ?: orderItem.product_name ?: "Unknown Product"
+            tvProductName.text = productName
+
+            // Set quantity and price
+            tvQuantity.text = "Qty: ${orderItem.quantity}"
+            tvPrice.text = "$${String.format("%.2f", orderItem.price)}"
+
+            // Set subtotal
+            tvSubtotal.text = "$${String.format("%.2f", orderItem.subtotal)}"
+
+            // Set item status with color
+            tvItemStatus.text = orderItem.item_status
+            setStatusColor(orderItem.item_status)
         }
 
-        // Set other product information
-        holder.tvProductName.text = orderItem.product_name ?: "Product ${orderItem.product_id}"
-        holder.tvProductPrice.text = "$${String.format("%.2f", orderItem.price)}"
-        holder.tvQuantity.text = "Qty: ${orderItem.quantity}"
-        holder.tvSubtotal.text = "$${String.format("%.2f", orderItem.subtotal)}"
+        private fun setStatusColor(status: String) {
+            val colorRes = when (status.lowercase()) {
+                "pending" -> R.color.orange
+                "confirmed" -> R.color.blue
+                "processing" -> R.color.purple
+                "shipped" -> R.color.teal
+                "delivered" -> R.color.green
+                "cancelled" -> R.color.red
+                else -> R.color.gray
+            }
+            tvItemStatus.setTextColor(itemView.context.getColor(colorRes))
+        }
+    }
 
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OrderItemViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_order_product, parent, false)
+        return OrderItemViewHolder(view)
+    }
 
+    override fun onBindViewHolder(holder: OrderItemViewHolder, position: Int) {
+        holder.bind(orderItems[position])
     }
 
     override fun getItemCount(): Int = orderItems.size

@@ -367,7 +367,7 @@ class SellerOrdersActivity : AppCompatActivity() {
 
         binding.tvTotalOrders.text = totalOrders.toString()
         binding.tvPendingOrders.text = pendingOrders.toString()
-        binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
+//        binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
     }
 
     private fun showEmptyState() {

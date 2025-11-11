@@ -236,7 +236,7 @@ class OrderSummaryActivity : AppCompatActivity() {
 
         class ViewHolder(itemView: android.view.View) : RecyclerView.ViewHolder(itemView) {
             val productName: TextView = itemView.findViewById(R.id.tvProductName)
-            val productPrice: TextView = itemView.findViewById(R.id.tvProductPrice)
+            val productPrice: TextView = itemView.findViewById(R.id.tvPrice)
             val quantity: TextView = itemView.findViewById(R.id.tvQuantity)
             val subtotal: TextView = itemView.findViewById(R.id.tvSubtotal)
         }
