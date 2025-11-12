@@ -64,6 +64,10 @@
             android:name=".activities.SellerOrderDetailActivity"
             />
 
+        <activity android:name=".activities.TransactionHistoryActivity" />
+        <activity android:name=".activities.SalesReportsActivity" />
+        <activity android:name=".activities.SellerEarningsActivity" />
+        <activity android:name=".activities.WithdrawalActivity" />
 
         <!-- Add this new entry for MyIDLoginActivity -->
 <!--        <activity-->
