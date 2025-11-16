@@ -12,6 +12,9 @@ data class Seller(
     val user_type: String = "seller",
     val created_at: Long,
     val is_verified: Boolean = false,
+    val commission_rate: Double = 10.0,
+    val seller_balance: Double = 0.0,          // New field
+    val total_earnings: Double = 0.0,          // New field
     val store_name: String? = null,
     val tax_id: String? = null,
     val store_description: String? = null,
