@@ -1,15 +1,15 @@
-// Transaction.kt
+// Withdrawal.kt
 package com.solih.mcjay.models
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Transaction(
-    val transaction_id: Int? = null,
+data class Withdrawal(
+    val withdraw_id: Int? = null,
     val seller_id: String,
     val amount: Double,
-    val type: String,
-    val description: String,
+    val payment_method: String,
     val status: String = "completed",
-    val created_at: String? = null
+    val created_at: String? = null,
+    val updated_at: String? = null
 )

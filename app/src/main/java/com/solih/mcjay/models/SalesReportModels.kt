@@ -64,3 +64,4 @@ data class TopProduct(
     val totalQuantity: Int,
     val totalSales: Double
 )
+
