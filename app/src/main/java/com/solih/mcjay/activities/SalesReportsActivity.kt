@@ -80,6 +80,9 @@ class SalesReportsActivity : AppCompatActivity() {
         calendar.add(Calendar.DAY_OF_YEAR, -30)
         val startDate = calendar.time
         binding.etStartDate.setText(dateFormat.format(startDate))
+
+        // Clear previous data when setting default dates
+        clearPreviousData()
     }
 
     private fun setupDatePickers() {
@@ -106,11 +109,27 @@ class SalesReportsActivity : AppCompatActivity() {
                 } else {
                     binding.etEndDate.setText(dateString)
                 }
+
+                // Clear previous data when date changes
+                clearPreviousData()
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         ).show()
+    }
+
+    private fun clearPreviousData() {
+        // Clear previous data when dates change
+        currentSalesData = null
+        currentOrderItems = emptyList()
+        binding.salesSummaryCard.visibility = android.view.View.GONE
+        binding.exportButtons.visibility = android.view.View.GONE
+
+        // Reset UI to default state
+        binding.tvTotalSales.text = "$0.00"
+        binding.tvTotalOrders.text = "0 orders"
+        binding.tvTotalItems.text = "0 items"
     }
 
     private fun setupClickListeners() {
@@ -133,6 +152,12 @@ class SalesReportsActivity : AppCompatActivity() {
 
         if (startDate.isEmpty() || endDate.isEmpty()) {
             Toast.makeText(this, "Please select both dates", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Validate date range
+        if (startDate > endDate) {
+            Toast.makeText(this, "Start date cannot be after end date", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -200,13 +225,14 @@ class SalesReportsActivity : AppCompatActivity() {
 
                 Log.d("SalesReports", "Product IDs for seller: $productIds")
 
-                // Get all order items and filter manually by seller's product IDs
+                // FIXED: Use proper UTC timezone in date filtering
                 val allOrderItems = supabase.postgrest.from("order_items")
                     .select {
                         Columns.list("quantity", "price", "item_status_type", "created_at", "product_id")
                         filter {
-                            gte("created_at", "$startDate 00:00:00")
-                            lte("created_at", "$endDate 23:59:59")
+                            // Add UTC timezone (+00) to match your created_at format
+                            gte("created_at", "$startDate 00:00:00+00")
+                            lte("created_at", "$endDate 23:59:59+00")
                         }
                     }
                     .decodeList<OrderItemActual>()
@@ -262,13 +288,14 @@ class SalesReportsActivity : AppCompatActivity() {
                     return@withContext emptyList()
                 }
 
-                // Get all order items and filter manually by seller's product IDs
+                // FIXED: Use proper UTC timezone in date filtering
                 val allOrderItems = supabase.postgrest.from("order_items")
                     .select {
                         Columns.list("created_at", "quantity", "price", "product_id", "order_id", "item_status_type")
                         filter {
-                            gte("created_at", "$startDate 00:00:00")
-                            lte("created_at", "$endDate 23:59:59")
+                            // Add UTC timezone (+00) to match your created_at format
+                            gte("created_at", "$startDate 00:00:00+00")
+                            lte("created_at", "$endDate 23:59:59+00")
                         }
                         order("created_at", Order.ASCENDING)
                     }

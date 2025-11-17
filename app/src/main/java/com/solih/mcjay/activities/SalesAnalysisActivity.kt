@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -57,7 +58,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Sales Analysis"
+        supportActionBar?.title = "Sales Analysis - $startDate to $endDate"
         binding.toolbar.setNavigationOnClickListener {
             finish()
         }
@@ -116,7 +117,6 @@ class SalesAnalysisActivity : AppCompatActivity() {
                 }
 
                 // Get all order items and filter manually by seller's product IDs
-                // Use OrderItemActual which has all the fields we need
                 val allOrderItems = supabase.postgrest.from("order_items")
                     .select {
                         Columns.list("created_at", "quantity", "price", "item_status_type", "product_id")
@@ -125,7 +125,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
                             lte("created_at", "$endDate 23:59:59")
                         }
                     }
-                    .decodeList<OrderItemActual>() // Use OrderItemActual instead of DailySalesResponseActual
+                    .decodeList<OrderItemActual>()
 
                 Log.d("SalesAnalysis", "All order items: ${allOrderItems.size}")
 
@@ -190,7 +190,6 @@ class SalesAnalysisActivity : AppCompatActivity() {
                 }
 
                 // Get all order items and filter manually by seller's product IDs
-                // Use OrderItemActual which has all the fields we need
                 val allOrderItems = supabase.postgrest.from("order_items")
                     .select {
                         Columns.list("product_id", "quantity", "price", "item_status_type")
@@ -199,7 +198,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
                             lte("created_at", "$endDate 23:59:59")
                         }
                     }
-                    .decodeList<OrderItemActual>() // Use OrderItemActual instead of TopProductResponseActual
+                    .decodeList<OrderItemActual>()
 
                 Log.d("SalesAnalysis", "All order items: ${allOrderItems.size}")
 
@@ -243,6 +242,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
 
     private fun updateRevenueUI(totalRevenue: Double) {
         binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
+        //binding.tvPeriod.text = "Period: $startDate to $endDate"
         Log.d("SalesAnalysis", "Revenue UI updated: $totalRevenue")
     }
 
@@ -272,7 +272,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
             dates.add(displayDate)
         }
 
-        val dataSet = LineDataSet(entries, "Daily Sales")
+        val dataSet = LineDataSet(entries, "Daily Sales Amount ($)")
         dataSet.color = Color.parseColor("#6200EE")
         dataSet.valueTextColor = Color.BLACK
         dataSet.lineWidth = 2f
@@ -282,12 +282,21 @@ class SalesAnalysisActivity : AppCompatActivity() {
         dataSet.valueTextSize = 10f
         dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
 
+        // Set value formatter to show currency
+        dataSet.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return "$${String.format("%.2f", value)}"
+            }
+        }
+
         val lineData = LineData(dataSet)
         binding.lineChart.data = lineData
 
         // Customize chart appearance
-        binding.lineChart.description.isEnabled = false
-        binding.lineChart.legend.isEnabled = false
+        binding.lineChart.description.isEnabled = true
+        binding.lineChart.description.text = "Daily Sales Trend"
+        binding.lineChart.description.textSize = 12f
+        binding.lineChart.legend.isEnabled = true
         binding.lineChart.setTouchEnabled(true)
         binding.lineChart.setPinchZoom(true)
         binding.lineChart.setDrawGridBackground(false)
@@ -304,20 +313,40 @@ class SalesAnalysisActivity : AppCompatActivity() {
         xAxis.granularity = 1f
         xAxis.labelRotationAngle = -45f
         xAxis.setDrawGridLines(false)
+        xAxis.textSize = 10f
+        xAxis.axisLineWidth = 1f
 
         // Customize Y axis (left)
         val yAxis = binding.lineChart.axisLeft
         yAxis.setDrawGridLines(true)
         yAxis.axisMinimum = 0f
+        yAxis.textSize = 10f
+        yAxis.axisLineWidth = 1f
+        yAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return "$${String.format("%.0f", value)}"
+            }
+        }
+        yAxis.labelCount = 6
 
-        // Disable right Y axis
-        binding.lineChart.axisRight.isEnabled = false
+        // Customize right Y axis
+        val rightYAxis = binding.lineChart.axisRight
+        rightYAxis.isEnabled = true
+        rightYAxis.setDrawGridLines(false)
+        rightYAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return "$${String.format("%.0f", value)}"
+            }
+        }
+        rightYAxis.labelCount = 6
 
         // Add animation
         binding.lineChart.animateXY(1000, 1000)
 
         // Refresh chart
         binding.lineChart.invalidate()
+
+        Log.d("SalesAnalysis", "Chart setup completed with ${entries.size} data points")
     }
 
     private fun updateTopProducts(topProducts: List<TopProduct>) {
