@@ -1,15 +1,13 @@
 package com.solih.mcjay.activities
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.solih.mcjay.R
-import com.solih.mcjay.adapters.TopProductsAdapter
 import com.solih.mcjay.databinding.ActivitySalesReportsBinding
-import com.solih.mcjay.models.TopProduct
+import com.solih.mcjay.models.*
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -26,11 +24,17 @@ class SalesReportsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySalesReportsBinding
     private val supabase = com.solih.mcjay.SupabaseClientInstance.client
     private val scope = CoroutineScope(Dispatchers.Main)
-    private lateinit var topProductsAdapter: TopProductsAdapter
 
     private var sellerId: String = ""
     private val calendar = Calendar.getInstance()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val displayDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+
+    // Store current report data for PDF export
+    private var currentSalesData: SalesData? = null
+    private var currentOrderItems: List<OrderItemDetail> = emptyList()
+    private var currentStartDate: String = ""
+    private var currentEndDate: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +43,6 @@ class SalesReportsActivity : AppCompatActivity() {
 
         setupToolbar()
         getCurrentSeller()
-        setupRecyclerView()
         setupDatePickers()
         setupClickListeners()
     }
@@ -57,19 +60,12 @@ class SalesReportsActivity : AppCompatActivity() {
         val currentUser = supabase.auth.currentUserOrNull()
         if (currentUser != null) {
             sellerId = currentUser.id
-            // Set default dates (last 30 days vs previous 30 days)
+            Log.d("SalesReports", "Current seller ID: $sellerId")
+            // Set default dates (last 30 days)
             setDefaultDates()
         } else {
             Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
             finish()
-        }
-    }
-
-    private fun setupRecyclerView() {
-        topProductsAdapter = TopProductsAdapter(mutableListOf())
-        binding.rvTopProducts.apply {
-            layoutManager = LinearLayoutManager(this@SalesReportsActivity)
-            adapter = topProductsAdapter
         }
     }
 
@@ -84,9 +80,6 @@ class SalesReportsActivity : AppCompatActivity() {
         calendar.add(Calendar.DAY_OF_YEAR, -30)
         val startDate = calendar.time
         binding.etStartDate.setText(dateFormat.format(startDate))
-
-        // Generate initial report
-        generateReport()
     }
 
     private fun setupDatePickers() {
@@ -124,6 +117,14 @@ class SalesReportsActivity : AppCompatActivity() {
         binding.btnGenerateReport.setOnClickListener {
             generateReport()
         }
+
+        binding.btnDownloadPdf.setOnClickListener {
+            downloadPdfReport()
+        }
+
+        binding.btnShowAnalysis.setOnClickListener {
+            showDetailedAnalysis()
+        }
     }
 
     private fun generateReport() {
@@ -135,142 +136,247 @@ class SalesReportsActivity : AppCompatActivity() {
             return
         }
 
+        Log.d("SalesReports", "Generating report for dates: $startDate to $endDate for seller: $sellerId")
         binding.progressBar.visibility = android.view.View.VISIBLE
 
         scope.launch {
             try {
-                // Calculate period 2 (previous period of same duration)
-                val period1Start = startDate
-                val period1End = endDate
+                // Load sales data and order items
+                val salesData = loadSalesData(startDate, endDate)
+                val orderItems = loadOrderItems(startDate, endDate)
 
-                val period2Start = calculatePreviousPeriodStart(startDate, endDate)
-                val period2End = startDate
-
-                // Load data for both periods
-                val period1Data = loadSalesData(period1Start, period1End)
-                val period2Data = loadSalesData(period2Start, period2End)
+                Log.d("SalesReports", "Sales data loaded: $salesData")
+                Log.d("SalesReports", "Order items loaded: ${orderItems.size} items")
 
                 // Update UI
-                updateComparisonUI(period1Data, period2Data, period1Start, period1End, period2Start, period2End)
+                updateSalesUI(salesData)
 
-                // Load top products
-                loadTopProducts(period1Start, period1End)
+                // Store data for PDF export
+                currentSalesData = salesData
+                currentOrderItems = orderItems
+                currentStartDate = startDate
+                currentEndDate = endDate
+
+                // Show export buttons
+                binding.exportButtons.visibility = android.view.View.VISIBLE
+
+                if (salesData.orderCount == 0) {
+                    Toast.makeText(this@SalesReportsActivity, "No sales data found for the selected period", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@SalesReportsActivity, "Report generated successfully!", Toast.LENGTH_SHORT).show()
+                }
 
             } catch (e: Exception) {
                 Log.e("SalesReports", "Error generating report: ${e.message}", e)
-                Toast.makeText(this@SalesReportsActivity, "Error generating report: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@SalesReportsActivity, "Error generating report: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 binding.progressBar.visibility = android.view.View.GONE
             }
         }
     }
 
-    private fun calculatePreviousPeriodStart(startDate: String, endDate: String): String {
-        val start = dateFormat.parse(startDate)!!
-        val end = dateFormat.parse(endDate)!!
-
-        val duration = end.time - start.time
-        val previousStart = Date(start.time - duration)
-
-        return dateFormat.format(previousStart)
-    }
-
     private suspend fun loadSalesData(startDate: String, endDate: String): SalesData {
         return withContext(Dispatchers.IO) {
-            val response = supabase.postgrest.from("order_items")
-                .select {
-                    // Use Columns.list for column selection
-                    Columns.list("subtotal", "created_at", "seller_id", "item_status")
-                    filter {
-                        eq("seller_id", sellerId)
-                        eq("item_status", "Delivered")
-                        gte("created_at", "$startDate 00:00:00")
-                        lte("created_at", "$endDate 23:59:59")
-                    }
-                }
-                .decodeList<Map<String, Any>>()
+            try {
+                Log.d("SalesReports", "Loading sales data from $startDate to $endDate for seller: $sellerId")
 
-            val orderCount = response.size
-            val totalSales = response.sumOf { it["subtotal"] as? Double ?: 0.0 }
-
-            SalesData(totalSales, orderCount)
-        }
-    }
-
-    private fun updateComparisonUI(period1: SalesData, period2: SalesData,
-                                   period1Start: String, period1End: String,
-                                   period2Start: String, period2End: String) {
-        // Update period labels
-        binding.tvPeriod1Label.text = "Period 1\n$period1Start to $period1End"
-        binding.tvPeriod2Label.text = "Period 2\n$period2Start to $period2End"
-
-        // Update sales and orders
-        binding.tvPeriod1Sales.text = "$${String.format("%.2f", period1.totalSales)}"
-        binding.tvPeriod1Orders.text = "${period1.orderCount} orders"
-
-        binding.tvPeriod2Sales.text = "$${String.format("%.2f", period2.totalSales)}"
-        binding.tvPeriod2Orders.text = "${period2.orderCount} orders"
-
-        // Calculate and show growth
-        if (period2.totalSales > 0) {
-            val growthPercentage = ((period1.totalSales - period2.totalSales) / period2.totalSales) * 100
-            binding.tvGrowthPercentage.text = "${String.format("%.1f", growthPercentage)}% growth"
-            binding.growthIndicator.visibility = android.view.View.VISIBLE
-
-            // Set color based on growth
-            val colorRes = if (growthPercentage >= 0) R.color.green_600 else R.color.red_600
-            binding.growthIndicator.setBackgroundColor(getColor(colorRes))
-            binding.tvGrowthPercentage.setTextColor(getColor(colorRes))
-        } else {
-            binding.tvGrowthPercentage.text = "No previous data"
-            binding.growthIndicator.visibility = android.view.View.GONE
-        }
-    }
-
-    private suspend fun loadTopProducts(startDate: String, endDate: String) {
-        try {
-            val topProducts = withContext(Dispatchers.IO) {
-                supabase.postgrest.from("order_items")
-                    .select(
-                        // Use Columns for raw SQL selection
-                        Columns.raw("""
-                        product_id,
-                        products(name),
-                        sum(quantity) as total_quantity,
-                        sum(subtotal) as total_sales
-                    """.trimIndent())
-                    ) {
+                // First get all products for this seller
+                val sellerProducts = supabase.postgrest.from("products")
+                    .select {
+                        Columns.list("product_id")
                         filter {
                             eq("seller_id", sellerId)
-                            eq("item_status", "Delivered")
+                        }
+                    }
+                    .decodeList<ProductResponse>()
+
+                Log.d("SalesReports", "Seller products: ${sellerProducts.size} products")
+                val productIds = sellerProducts.mapNotNull { it.product_id }
+
+                if (productIds.isEmpty()) {
+                    Log.d("SalesReports", "No products found for this seller")
+                    return@withContext SalesData(0.0, 0, 0)
+                }
+
+                Log.d("SalesReports", "Product IDs for seller: $productIds")
+
+                // Get all order items and filter manually by seller's product IDs
+                val allOrderItems = supabase.postgrest.from("order_items")
+                    .select {
+                        Columns.list("quantity", "price", "item_status_type", "created_at", "product_id")
+                        filter {
                             gte("created_at", "$startDate 00:00:00")
                             lte("created_at", "$endDate 23:59:59")
                         }
-                        // Use Order for ordering (column as String)
-                        order("total_sales", Order.DESCENDING)
-                        limit(5)
                     }
-                    .decodeList<Map<String, Any>>()
-            }
-            val products = topProducts.mapNotNull { product ->
-                try {
-                    TopProduct(
-                        productId = product["product_id"] as? String ?: "",
-                        productName = (product["products"] as? Map<String, Any>)?.get("name") as? String ?: "Unknown Product",
-                        totalQuantity = (product["total_quantity"] as? Number)?.toInt() ?: 0,
-                        totalSales = (product["total_sales"] as? Number)?.toDouble() ?: 0.0
-                    )
-                } catch (e: Exception) {
-                    Log.e("SalesReports", "Error parsing product: ${e.message}")
-                    null
+                    .decodeList<OrderItemActual>()
+
+                Log.d("SalesReports", "All order items: ${allOrderItems.size}")
+
+                // Filter by seller's product IDs manually
+                val sellerOrderItems = allOrderItems.filter { item ->
+                    item.product_id in productIds
                 }
+
+                Log.d("SalesReports", "Seller order items: ${sellerOrderItems.size}")
+
+                // Calculate using price instead of subtotal
+                val orderCount = sellerOrderItems.size
+                val totalSales = sellerOrderItems.sumOf { item ->
+                    val quantity = item.quantity ?: 0
+                    val price = item.price ?: 0.0
+                    quantity * price
+                }
+                val totalItems = sellerOrderItems.sumOf { it.quantity ?: 0 }
+
+                Log.d("SalesReports", "Calculated - Orders: $orderCount, Sales: $totalSales, Items: $totalItems")
+
+                SalesData(totalSales, orderCount, totalItems)
+            } catch (e: Exception) {
+                Log.e("SalesReports", "Error loading sales data: ${e.message}", e)
+                SalesData(0.0, 0, 0)
             }
-            topProductsAdapter.updateProducts(products)
-        } catch (e: Exception) {
-            Log.e("SalesReports", "Error loading top products: ${e.message}", e)
-            Toast.makeText(this@SalesReportsActivity, "Error loading top products", Toast.LENGTH_SHORT).show()
         }
     }
 
-    data class SalesData(val totalSales: Double, val orderCount: Int)
+    private suspend fun loadOrderItems(startDate: String, endDate: String): List<OrderItemDetail> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("SalesReports", "Loading order items from $startDate to $endDate for seller: $sellerId")
+
+                // First get all products for this seller
+                val sellerProducts = supabase.postgrest.from("products")
+                    .select {
+                        Columns.list("product_id", "name")
+                        filter {
+                            eq("seller_id", sellerId)
+                        }
+                    }
+                    .decodeList<ProductResponse>()
+
+                val productIds = sellerProducts.mapNotNull { it.product_id }
+                val productNames = sellerProducts.associate { it.product_id to it.name }.filterValues { it != null }
+
+                if (productIds.isEmpty()) {
+                    Log.d("SalesReports", "No products found for this seller")
+                    return@withContext emptyList()
+                }
+
+                // Get all order items and filter manually by seller's product IDs
+                val allOrderItems = supabase.postgrest.from("order_items")
+                    .select {
+                        Columns.list("created_at", "quantity", "price", "product_id", "order_id", "item_status_type")
+                        filter {
+                            gte("created_at", "$startDate 00:00:00")
+                            lte("created_at", "$endDate 23:59:59")
+                        }
+                        order("created_at", Order.ASCENDING)
+                    }
+                    .decodeList<OrderItemActual>()
+
+                Log.d("SalesReports", "All order items: ${allOrderItems.size}")
+
+                // Filter by seller's product IDs manually
+                val sellerOrderItems = allOrderItems.filter { item ->
+                    item.product_id in productIds
+                }
+
+                Log.d("SalesReports", "Seller order items: ${sellerOrderItems.size}")
+
+                val orderItems = sellerOrderItems.mapNotNull { item ->
+                    try {
+                        val date = item.created_at ?: ""
+                        val quantity = item.quantity ?: 0
+                        val productId = item.product_id ?: ""
+                        val productName = productNames[productId] ?: "Unknown Product"
+                        val price = item.price ?: 0.0
+                        val amount = quantity * price
+
+                        OrderItemDetail(
+                            date = date,
+                            quantity = quantity,
+                            productName = productName,
+                            amount = amount
+                        )
+                    } catch (e: Exception) {
+                        Log.e("SalesReports", "Error parsing order item: ${e.message}")
+                        null
+                    }
+                }
+
+                Log.d("SalesReports", "Final order items: ${orderItems.size}")
+                orderItems
+            } catch (e: Exception) {
+                Log.e("SalesReports", "Error loading order items: ${e.message}", e)
+                emptyList()
+            }
+        }
+    }
+
+    private fun updateSalesUI(salesData: SalesData) {
+        binding.tvTotalSales.text = "$${String.format("%.2f", salesData.totalSales)}"
+        binding.tvTotalOrders.text = "${salesData.orderCount} orders"
+        binding.tvTotalItems.text = "${salesData.totalItems} items"
+
+        // Show sales summary card
+        binding.salesSummaryCard.visibility = android.view.View.VISIBLE
+        Log.d("SalesReports", "UI updated with sales data: $salesData")
+    }
+
+    private fun downloadPdfReport() {
+        val salesData = currentSalesData
+        val orderItems = currentOrderItems
+
+        if (salesData == null || orderItems.isEmpty()) {
+            Toast.makeText(this, "Please generate a report first", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Toast.makeText(this, "PDF export feature will be implemented soon", Toast.LENGTH_SHORT).show()
+        showExportPreview(salesData, orderItems)
+    }
+
+    private fun showExportPreview(salesData: SalesData, orderItems: List<OrderItemDetail>) {
+        val preview = StringBuilder()
+        preview.append("Sales Report - Seller: $sellerId\n")
+        preview.append("Period: $currentStartDate to $currentEndDate\n\n")
+        preview.append("Summary:\n")
+        preview.append("Total Sales: $${String.format("%.2f", salesData.totalSales)}\n")
+        preview.append("Total Orders: ${salesData.orderCount}\n")
+        preview.append("Total Items: ${salesData.totalItems}\n\n")
+        preview.append("Detailed Transactions:\n")
+        preview.append("Date | Items | Product | Amount\n")
+        preview.append("--------------------------------\n")
+
+        orderItems.forEach { item ->
+            val displayDate = try {
+                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(item.date.substring(0, 10))
+                displayDateFormat.format(date)
+            } catch (e: Exception) {
+                item.date.substring(0, 10)
+            }
+            preview.append("$displayDate | ${item.quantity} | ${item.productName} | $${String.format("%.2f", item.amount)}\n")
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Report Preview (PDF Export)")
+            .setMessage(preview.toString())
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showDetailedAnalysis() {
+        val salesData = currentSalesData
+        if (salesData == null) {
+            Toast.makeText(this, "Please generate a report first", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(this, SalesAnalysisActivity::class.java).apply {
+            putExtra("startDate", currentStartDate)
+            putExtra("endDate", currentEndDate)
+            putExtra("sellerId", sellerId)
+        }
+        startActivity(intent)
+    }
 }

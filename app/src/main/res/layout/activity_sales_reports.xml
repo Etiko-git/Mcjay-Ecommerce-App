@@ -44,7 +44,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Compare Periods"
+                        android:text="Select Date Range"
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold"
@@ -54,7 +54,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
+                        android:layout_marginBottom="16dp">
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
@@ -102,13 +102,15 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Comparison Results -->
+            <!-- Sales Summary -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/salesSummaryCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -119,7 +121,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Sales Comparison"
+                        android:text="Sales Summary"
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold"
@@ -129,29 +131,27 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="8dp">
 
-                        <!-- Period 1 -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:gravity="center"
-                            android:padding="16dp"
+                            android:padding="12dp"
                             android:background="@color/purple_50">
 
                             <TextView
-                                android:id="@+id/tvPeriod1Label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Period 1"
+                                android:text="Total Sales"
                                 android:textColor="@color/purple_500"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tvPeriod1Sales"
+                                android:id="@+id/tvTotalSales"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -160,82 +160,61 @@
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
-                            <TextView
-                                android:id="@+id/tvPeriod1Orders"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="0 orders"
-                                android:textColor="@color/gray"
-                                android:textSize="12sp" />
-
                         </LinearLayout>
 
-                        <!-- Period 2 -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:gravity="center"
-                            android:padding="16dp"
+                            android:padding="12dp"
                             android:background="@color/blue_50">
 
                             <TextView
-                                android:id="@+id/tvPeriod2Label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Period 2"
+                                android:text="Total Orders"
                                 android:textColor="@color/blue"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tvPeriod2Sales"
+                                android:id="@+id/tvTotalOrders"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:text="$0.00"
+                                android:text="0 orders"
                                 android:textColor="@color/black"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvPeriod2Orders"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="0 orders"
-                                android:textColor="@color/gray"
-                                android:textSize="12sp" />
 
                         </LinearLayout>
 
                     </LinearLayout>
 
-                    <!-- Growth Indicator -->
                     <LinearLayout
-                        android:id="@+id/growthIndicator"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center"
                         android:padding="12dp"
-                        android:background="@color/green_600"
-                        android:visibility="gone">
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_trending_up"
-                            android:tint="@color/green_600" />
+                        android:background="@color/green_50">
 
                         <TextView
-                            android:id="@+id/tvGrowthPercentage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Items Sold:"
+                            android:textColor="@color/green_600"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvTotalItems"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="+0% growth"
+                            android:text="0 items"
                             android:textColor="@color/green_600"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -245,35 +224,36 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Top Products -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Export Buttons -->
+            <LinearLayout
+                android:id="@+id/exportButtons"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDownloadPdf"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Download PDF"
+                    android:drawableStart="@drawable/ic_pdf"
+                    app:cornerRadius="8dp" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Top Selling Products"
-                        android:textColor="@color/black"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShowAnalysis"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="Show Analysis"
+                    android:drawableStart="@drawable/ic_analytics"
+                    app:cornerRadius="8dp" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvTopProducts"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
 
             <ProgressBar
                 android:id="@+id/progressBar"

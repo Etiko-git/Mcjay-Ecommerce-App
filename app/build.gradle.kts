@@ -156,4 +156,6 @@ dependencies {
     implementation("com.stripe:stripe-android:20.40.0")
 
 
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
 }
