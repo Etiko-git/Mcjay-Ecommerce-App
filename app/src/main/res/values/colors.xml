@@ -48,5 +48,19 @@
     <color name="green_50">#E8F5E8</color>
 
 
+    <!-- Order Status Colors -->
+    <color name="status_pending">#FF9800</color>
+    <color name="status_confirmed">#2196F3</color>
+    <color name="status_processing">#9C27B0</color>
+    <color name="status_shipped">#673AB7</color>
+    <color name="status_delivered">#4CAF50</color>
+
+    <!-- Other colors -->
+    <!-- Primary Colors -->
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorPrimaryLight">#BB86FC</color>
+    <color name="colorAccent">#03DAC5</color>
+
 
  </resources>

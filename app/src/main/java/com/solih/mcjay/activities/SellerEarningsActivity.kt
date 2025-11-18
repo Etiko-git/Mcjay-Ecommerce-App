@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.solih.mcjay.R
 import com.solih.mcjay.adapters.TransactionAdapter
 import com.solih.mcjay.databinding.ActivitySellerEarningsBinding
+import com.solih.mcjay.models.SellerBalance
 import com.solih.mcjay.models.Transaction
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
@@ -84,10 +85,10 @@ class SellerEarningsActivity : AppCompatActivity() {
         binding.tvEmpty.visibility = android.view.View.GONE
         scope.launch {
             try {
-                // Load total balance and pending amount
-                loadBalanceData()
-                // Load monthly earnings
-                loadMonthlyEarnings()
+                // Load seller balance from seller_balance table
+                loadSellerBalance()
+                // Load monthly earnings from order_items
+//                loadMonthlyEarnings()
                 // Load recent transactions
                 loadRecentTransactions()
             } catch (e: Exception) {
@@ -99,80 +100,96 @@ class SellerEarningsActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun loadBalanceData() {
+    private suspend fun loadSellerBalance() {
         try {
-            // Calculate total balance from delivered orders
-            val deliveredOrders = withContext(Dispatchers.IO) {
-                supabase.postgrest.from("order_items")
+            val sellerBalance = withContext(Dispatchers.IO) {
+                supabase.postgrest.from("seller_balance")
                     .select {
                         filter {
                             eq("seller_id", sellerId)
-                            eq("item_status", "Delivered")
                         }
                     }
-                    .decodeList<Map<String, Any>>()
+                    .decodeSingleOrNull<SellerBalance>()
             }
-            val totalBalance = deliveredOrders.sumOf { it["subtotal"] as? Double ?: 0.0 }
-            // Calculate pending balance from non-delivered orders
-            val pendingOrders = withContext(Dispatchers.IO) {
-                supabase.postgrest.from("order_items")
-                    .select {
-                        filter {
-                            eq("seller_id", sellerId)
-                            neq("item_status", "Delivered") // Use neq instead of not
-                        }
-                    }
-                    .decodeList<Map<String, Any>>()
-            }
-            val pendingBalance = pendingOrders.sumOf { it["subtotal"] as? Double ?: 0.0 }
+
             runOnUiThread {
-                binding.tvTotalBalance.text = "$${String.format("%.2f", totalBalance)}"
-                binding.tvPendingBalance.text = "Pending: $${String.format("%.2f", pendingBalance)}"
+                if (sellerBalance != null) {
+                    binding.tvTotalBalance.text = "₹${String.format("%.2f", sellerBalance.balance)}"
+                    binding.tvPendingBalance.text = "Total Earnings: ₹${String.format("%.2f", sellerBalance.total_earnings)}"
+                } else {
+                    binding.tvTotalBalance.text = "₹0.00"
+                    binding.tvPendingBalance.text = "Total Earnings: ₹0.00"
+                }
             }
         } catch (e: Exception) {
-            Log.e("SellerEarnings", "Error loading balance data: ${e.message}")
+            Log.e("SellerEarnings", "Error loading seller balance: ${e.message}")
+            runOnUiThread {
+                binding.tvTotalBalance.text = "₹0.00"
+                binding.tvPendingBalance.text = "Total Earnings: ₹0.00"
+            }
         }
     }
 
-    private suspend fun loadMonthlyEarnings() {
-        try {
-            val dateFormat = SimpleDateFormat("yyyy-MM", Locale.getDefault())
-            val currentMonth = dateFormat.format(Date())
-            val calendar = Calendar.getInstance()
-            calendar.add(Calendar.MONTH, -1)
-            val lastMonth = dateFormat.format(calendar.time)
-            // This month earnings
-            val thisMonthEarnings = withContext(Dispatchers.IO) {
-                supabase.postgrest.from("order_items")
-                    .select {
-                        filter {
-                            eq("seller_id", sellerId)
-                            eq("item_status", "Delivered")
-                            like("created_at", "$currentMonth%")
-                        }
-                    }
-                    .decodeList<Map<String, Any>>()
-            }.sumOf { it["subtotal"] as? Double ?: 0.0 }
-            // Last month earnings
-            val lastMonthEarnings = withContext(Dispatchers.IO) {
-                supabase.postgrest.from("order_items")
-                    .select {
-                        filter {
-                            eq("seller_id", sellerId)
-                            eq("item_status", "Delivered")
-                            like("created_at", "$lastMonth%")
-                        }
-                    }
-                    .decodeList<Map<String, Any>>()
-            }.sumOf { it["subtotal"] as? Double ?: 0.0 }
-            runOnUiThread {
-                binding.tvThisMonthEarnings.text = "$${String.format("%.2f", thisMonthEarnings)}"
-                binding.tvLastMonthEarnings.text = "$${String.format("%.2f", lastMonthEarnings)}"
-            }
-        } catch (e: Exception) {
-            Log.e("SellerEarnings", "Error loading monthly earnings: ${e.message}")
-        }
-    }
+//    private suspend fun loadMonthlyEarnings() {
+//        try {
+//            val calendar = Calendar.getInstance()
+//            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+//
+//            // Current month range
+//            calendar.set(Calendar.DAY_OF_MONTH, 1)
+//            val currentMonthStart = dateFormat.format(calendar.time)
+//            calendar.add(Calendar.MONTH, 1)
+//            calendar.add(Calendar.DAY_OF_MONTH, -1)
+//            val currentMonthEnd = dateFormat.format(calendar.time)
+//
+//            // Previous month range
+//            calendar.add(Calendar.MONTH, -2) // Go back to previous month
+//            calendar.set(Calendar.DAY_OF_MONTH, 1)
+//            val lastMonthStart = dateFormat.format(calendar.time)
+//            calendar.add(Calendar.MONTH, 1)
+//            calendar.add(Calendar.DAY_OF_MONTH, -1)
+//            val lastMonthEnd = dateFormat.format(calendar.time)
+//
+//            // This month earnings from delivered orders
+//            val thisMonthEarnings = withContext(Dispatchers.IO) {
+//                supabase.postgrest.from("order_items")
+//                    .select {
+//                        filter {
+//                            eq("seller_id", sellerId)
+//                            eq("item_status", "Delivered")
+//                            gte("created_at", currentMonthStart)
+//                            lte("created_at", currentMonthEnd)
+//                        }
+//                    }
+//                    .decodeList<Map<String, Any>>()
+//            }.sumOf { it["subtotal"] as? Double ?: 0.0 }
+//
+//            // Last month earnings from delivered orders
+//            val lastMonthEarnings = withContext(Dispatchers.IO) {
+//                supabase.postgrest.from("order_items")
+//                    .select {
+//                        filter {
+//                            eq("seller_id", sellerId)
+//                            eq("item_status", "Delivered")
+//                            gte("created_at", lastMonthStart)
+//                            lte("created_at", lastMonthEnd)
+//                        }
+//                    }
+//                    .decodeList<Map<String, Any>>()
+//            }.sumOf { it["subtotal"] as? Double ?: 0.0 }
+//
+//            runOnUiThread {
+//                binding.tvThisMonthEarnings.text = "$${String.format("%.2f", thisMonthEarnings)}"
+//                binding.tvLastMonthEarnings.text = "$${String.format("%.2f", lastMonthEarnings)}"
+//            }
+//        } catch (e: Exception) {
+//            Log.e("SellerEarnings", "Error loading monthly earnings: ${e.message}")
+//            runOnUiThread {
+//                binding.tvThisMonthEarnings.text = "$0.00"
+//                binding.tvLastMonthEarnings.text = "$0.00"
+//            }
+//        }
+//    }
 
     private suspend fun loadRecentTransactions() {
         try {
@@ -199,6 +216,9 @@ class SellerEarningsActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             Log.e("SellerEarnings", "Error loading transactions: ${e.message}")
+            runOnUiThread {
+                binding.tvEmpty.visibility = android.view.View.VISIBLE
+            }
         }
     }
 

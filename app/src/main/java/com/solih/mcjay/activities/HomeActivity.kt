@@ -36,6 +36,7 @@ class HomeActivity : AppCompatActivity() {
                 R.id.nav_profile -> loadFragment(ProfileFragment())
                 R.id.nav_favorites -> loadFragment(FavoriteFragment())
                 R.id.nav_cart -> loadFragment(CartFragment())
+                R.id.nav_orders-> loadFragment(OrderFragment())
                 // add other nav items if needed
             }
             true

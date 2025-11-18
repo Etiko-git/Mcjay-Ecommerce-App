@@ -18,5 +18,29 @@
     <string name="remove_item">Remove item from cart</string>
     <string name="default_quantity">1</string>
     <string name="total_label">TOTAL</string>
+
+    <string name="empty_orders">No orders found</string>
+    <string name="order_number">Order #%1$s</string>
+    <string name="order_date">Order Date: %1$s</string>
+    <string name="order_status">Status: %1$s</string>
+    <string name="order_total">Total: $%1$s</string>
+    <string name="items_count">%1$d items</string>
+    <string name="view_details">View Details</string>
+    <string name="track_order">Track Order</string>
+    <string name="loading_orders">Loading orders...</string>
+    <string name="error_loading_orders">Error loading orders</string>
+    <string name="please_login">Please login first</string>
+    <string name="filter_all">All</string>
+    <string name="filter_pending">Pending</string>
+    <string name="filter_confirmed">Confirmed</string>
+    <string name="filter_processing">Processing</string>
+    <string name="filter_shipped">Shipped</string>
+    <string name="filter_delivered">Delivered</string>
+    <string name="my_orders">My Orders</string>
+    <string name="no_orders_yet">No Orders Yet</string>
+    <string name="orders_will_appear_here">Your orders will appear here</string>
+    <string name="recent">Recent</string>
+    <string name="order_items_loading">Loading items...</string>
+    <string name="track_order_toast">Track order: %1$s</string>
 </resources>
 

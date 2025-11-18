@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.solih.mcjay.R
 import com.solih.mcjay.SupabaseClientInstance
 import com.solih.mcjay.databinding.ActivitySellerHomeBinding
-import com.solih.mcjay.models.Seller
+import com.solih.mcjay.models.*
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
@@ -82,36 +82,58 @@ class SellerHomeActivity : AppCompatActivity() {
                         eq("seller_id", sellerId)
                     }
                 }
-                .decodeList<Map<String, Any>>()
+                .decodeList<Product>()
 
             runOnUiThread {
                 binding.tvProductsCount.text = products.size.toString()
             }
         } catch (e: Exception) {
             Log.e("SellerHome", "Error loading products count: ${e.message}")
+            runOnUiThread {
+                binding.tvProductsCount.text = "0"
+            }
         }
     }
 
     private suspend fun loadTodaysOrders() {
         try {
-            // Get today's date in the format used in your database
+            // Get today's date range
+            val calendar = Calendar.getInstance()
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val today = dateFormat.format(Date())
 
-            val orders = supabase.postgrest.from("order_items")
+            // Start of today
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val startOfDay = dateFormat.format(calendar.time) + " 00:00:00"
+
+            // End of today
+            calendar.set(Calendar.HOUR_OF_DAY, 23)
+            calendar.set(Calendar.MINUTE, 59)
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            val endOfDay = dateFormat.format(calendar.time) + " 23:59:59"
+
+            // Use range query for timestamp filtering
+            val orderItems = supabase.postgrest.from("order_items")
                 .select {
                     filter {
                         eq("seller_id", sellerId)
-                        like("created_at", "$today%")
+                        gte("created_at", startOfDay)
+                        lte("created_at", endOfDay)
                     }
                 }
-                .decodeList<Map<String, Any>>()
+                .decodeList<OrderItem>()
 
             runOnUiThread {
-                binding.tvTodaysOrders.text = orders.size.toString()
+                binding.tvTodaysOrders.text = orderItems.size.toString()
             }
         } catch (e: Exception) {
             Log.e("SellerHome", "Error loading today's orders: ${e.message}")
+            runOnUiThread {
+                binding.tvTodaysOrders.text = "0"
+            }
         }
     }
 
@@ -124,34 +146,40 @@ class SellerHomeActivity : AppCompatActivity() {
                         lte("stock_quantity", 3)
                     }
                 }
-                .decodeList<Map<String, Any>>()
+                .decodeList<Product>()
 
             runOnUiThread {
                 binding.tvLowStockCount.text = lowStockProducts.size.toString()
             }
         } catch (e: Exception) {
             Log.e("SellerHome", "Error loading low stock count: ${e.message}")
+            runOnUiThread {
+                binding.tvLowStockCount.text = "0"
+            }
         }
     }
 
     private suspend fun loadTotalRevenue() {
         try {
-            val revenueData = supabase.postgrest.from("order_items")
+            // Get total earnings from seller_balance table
+            val sellerBalance = supabase.postgrest.from("seller_balance")
                 .select {
                     filter {
                         eq("seller_id", sellerId)
-                        eq("item_status", "Delivered")
                     }
                 }
-                .decodeList<Map<String, Any>>()
+                .decodeSingleOrNull<SellerBalance>()
 
-            val totalRevenue = revenueData.sumOf { it["subtotal"] as? Double ?: 0.0 }
+            val totalEarnings = sellerBalance?.total_earnings ?: 0.0
 
             runOnUiThread {
-                binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
+                binding.tvTotalRevenue.text = "₹${String.format("%.2f", totalEarnings)}"
             }
         } catch (e: Exception) {
             Log.e("SellerHome", "Error loading total revenue: ${e.message}")
+            runOnUiThread {
+                binding.tvTotalRevenue.text = "₹0.00"
+            }
         }
     }
 
@@ -175,7 +203,7 @@ class SellerHomeActivity : AppCompatActivity() {
         }
 
         binding.cardRevenue.setOnClickListener {
-//            val intent = Intent(this@SellerHomeActivity, SellerEarningsActivity::class.java)
+            val intent = Intent(this@SellerHomeActivity, SellerEarningsActivity::class.java)
             startActivity(intent)
         }
 
@@ -186,8 +214,7 @@ class SellerHomeActivity : AppCompatActivity() {
         }
 
         binding.btnAddProduct.setOnClickListener {
-            val intent = Intent(this@SellerHomeActivity, AddProductActivity::class.java)
-            startActivity(intent)
+            showAddProductDialog()
         }
 
         binding.btnViewProducts.setOnClickListener {
@@ -200,11 +227,6 @@ class SellerHomeActivity : AppCompatActivity() {
             val intent = Intent(this@SellerHomeActivity, SalesReportsActivity::class.java)
             startActivity(intent)
         }
-
-//        binding.btnRatingsFeedback.setOnClickListener {
-//            val intent = Intent(this@SellerHomeActivity, RatingsFeedbackActivity::class.java)
-//            startActivity(intent)
-//        }
 
         // Payment & Earnings
         binding.btnTransactionHistory.setOnClickListener {
@@ -220,6 +242,39 @@ class SellerHomeActivity : AppCompatActivity() {
         binding.btnWithdraw.setOnClickListener {
             val intent = Intent(this@SellerHomeActivity, WithdrawalActivity::class.java)
             startActivity(intent)
+        }
+    }
+
+    private fun showAddProductDialog() {
+        // Use the same dialog approach as in SellerProductsActivity
+        scope.launch {
+            try {
+                val currentUser = supabase.auth.currentUserOrNull()
+                if (currentUser != null) {
+                    // Check if seller profile is complete
+                    val sellerProfile = getSellerProfile(currentUser.id)
+                    if (sellerProfile != null && isProfileComplete(sellerProfile)) {
+                        // Profile is complete, navigate to add product
+                        val intent = Intent(this@SellerHomeActivity, SellerProductsActivity::class.java)
+                        startActivity(intent)
+                    } else {
+                        // Profile incomplete, show message
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@SellerHomeActivity,
+                                "Please complete your profile first",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            navigateToProfile()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SellerHome", "Error checking profile: ${e.message}")
+                runOnUiThread {
+                    Toast.makeText(this@SellerHomeActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
