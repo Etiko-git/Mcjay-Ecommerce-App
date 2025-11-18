@@ -38,9 +38,9 @@ class SimilarProductsAdapter(
         holder.productName.text = product.name
 
         val price = if (product.hasDiscount() && product.discount_price != null) {
-            "$${product.discount_price}"
+            "₹${product.discount_price}"
         } else {
-            "$${product.price}"
+            "₹${product.price}"
         }
         holder.productPrice.text = price
 

@@ -1,9 +1,11 @@
 package com.solih.mcjay.activities
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
@@ -13,10 +15,11 @@ import com.solih.mcjay.databinding.ActivitySellerProfileBinding
 import com.solih.mcjay.models.Seller
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
+import java.util.UUID
 
 class SellerProfileActivity : AppCompatActivity() {
 
@@ -34,6 +37,7 @@ class SellerProfileActivity : AppCompatActivity() {
         sellerProfile = intent.getSerializableExtra("seller_profile") as Seller
 
         setupToolbar()
+        setupProfileImageSize() // Add this line
         displayProfileData()
         setupListeners()
     }
@@ -45,20 +49,6 @@ class SellerProfileActivity : AppCompatActivity() {
     }
 
     private fun displayProfileData() {
-        // Display profile image
-        sellerProfile.profile_image?.let { imageUrl ->
-            if (imageUrl.isNotEmpty()) {
-                try {
-                    Glide.with(this)
-                        .load(imageUrl)
-                        .placeholder(R.drawable.ic_store)
-                        .into(binding.ivProfileImage)
-                } catch (e: Exception) {
-                    binding.ivProfileImage.setImageResource(R.drawable.ic_store)
-                }
-            }
-        }
-
         // Display profile information
         binding.tvFullName.text = sellerProfile.full_name
         binding.tvEmail.text = sellerProfile.email
@@ -79,6 +69,73 @@ class SellerProfileActivity : AppCompatActivity() {
         val registrationDate = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
             .format(java.util.Date(sellerProfile.created_at))
         binding.tvRegistrationDate.text = registrationDate
+
+        // Load profile image from storage
+        loadProfileImage()
+    }
+
+    private fun loadProfileImage() {
+        scope.launch {
+            try {
+                val imageUrl = getProfileImageUrl(sellerProfile.id)
+                runOnUiThread {
+                    if (imageUrl != null) {
+                        Glide.with(this@SellerProfileActivity)
+                            .load(imageUrl)
+                            .override(300, 300) // Reduced from 500 to match smaller circle
+                            .circleCrop()
+                            .placeholder(R.drawable.ic_store)
+                            .error(R.drawable.ic_store)
+                            .into(binding.ivProfileImage)
+                    } else {
+                        binding.ivProfileImage.setImageResource(R.drawable.ic_store)
+                        binding.ivProfileImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    binding.ivProfileImage.setImageResource(R.drawable.ic_store)
+                    binding.ivProfileImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                }
+            }
+        }
+    }
+
+    private fun setupProfileImageSize() {
+        // Set smaller dimensions - reduced from 180dp to 120dp
+        val sizeInPixels = (120 * resources.displayMetrics.density).toInt()
+        binding.ivProfileImage.layoutParams.width = sizeInPixels
+        binding.ivProfileImage.layoutParams.height = sizeInPixels
+
+        // Remove any padding that might create space
+        binding.ivProfileImage.setPadding(0, 0, 0, 0)
+
+        // Make it perfectly circular
+        binding.ivProfileImage.clipToOutline = true
+
+        // Use center crop to fill the entire circle without spaces
+        binding.ivProfileImage.scaleType = ImageView.ScaleType.CENTER_CROP
+
+        // Set background only if you want a border, otherwise remove it
+        // binding.ivProfileImage.background = resources.getDrawable(R.drawable.circle_background, null)
+    }
+
+    private suspend fun getProfileImageUrl(sellerId: String): String? {
+        return try {
+            // Try to get the public URL for the profile image
+            // Note: This assumes the image follows the pattern {sellerId}/profile_{timestamp}.{extension}
+            // We need to list files in the seller's folder and get the latest one
+            val files = supabase.storage.from("seller-profiles").list(sellerId)
+            val profileImage = files.find { it.name.startsWith("profile_") }
+
+            if (profileImage != null) {
+                supabase.storage.from("seller-profiles").publicUrl("$sellerId/${profileImage.name}")
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun setupListeners() {
@@ -96,6 +153,48 @@ class SellerProfileActivity : AppCompatActivity() {
         binding.btnStoreSettings.setOnClickListener {
             Toast.makeText(this, "Store settings feature coming soon", Toast.LENGTH_SHORT).show()
         }
+
+        // Add click listener for profile image to allow uploading new image
+        binding.ivProfileImage.setOnClickListener {
+            // You can implement image picker here
+            Toast.makeText(this, "Image upload feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun uploadProfileImage(imageUri: Uri): Boolean {
+        return try {
+            val sellerId = sellerProfile.id
+
+            // Generate unique file name with timestamp
+            val fileExtension = getFileExtensionFromUri(imageUri)
+            val fileName = "profile_${System.currentTimeMillis()}.$fileExtension"
+            val fullPath = "$sellerId/$fileName" // It's good practice to define the full path
+
+            // Read the image as ByteArray from Uri
+            val inputStream = contentResolver.openInputStream(imageUri)
+            val fileBytes = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (fileBytes == null) {
+                return false
+            }
+
+            // ✅ FIX: Correctly call the upload function with the options lambda
+            supabase.storage.from("seller-profiles")
+                .upload(fullPath, fileBytes) {
+                    upsert = true
+                }
+
+            true
+        } catch (e: Exception) {
+            // It's helpful to log the error to understand what went wrong
+            // Log.e("SellerProfileActivity", "Image upload failed", e)
+            false
+        }
+    }
+
+    private fun getFileExtensionFromUri(uri: Uri): String {
+        return contentResolver.getType(uri)?.substringAfterLast("/") ?: "jpg"
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -155,5 +254,11 @@ class SellerProfileActivity : AppCompatActivity() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh profile data when returning from edit profile
+        refreshProfile()
     }
 }

@@ -253,10 +253,10 @@ class CartFragment : Fragment() {
             total += unitPrice * cartItem.quantity
         }
 
-        binding.totalPrice.text = "$${String.format("%.2f", total)}"
+        binding.totalPrice.text = "₹${String.format("%.2f", total)}"
         binding.checkoutButton.isEnabled = cartItems.isNotEmpty()
 
-        Log.d("CartFragment", "Total price updated: $$total")
+        Log.d("CartFragment", "Total price updated: ₹$total")
     }
 
     private fun showEmptyState(message: String) {

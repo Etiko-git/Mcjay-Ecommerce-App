@@ -185,10 +185,10 @@ class OrderSummaryActivity : AppCompatActivity() {
             val total = subtotal + shipping + tax
 
             // Update totals
-            tvSubtotal.text = "$${String.format("%.2f", subtotal)}"
-            tvShipping.text = "$${String.format("%.2f", shipping)}"
-            tvTax.text = "$${String.format("%.2f", tax)}"
-            tvTotal.text = "$${String.format("%.2f", total)}"
+            tvSubtotal.text = "₹${String.format("%.2f", subtotal)}"
+            tvShipping.text = "₹${String.format("%.2f", shipping)}"
+            tvTax.text = "₹${String.format("%.2f", tax)}"
+            tvTotal.text = "₹${String.format("%.2f", total)}"
 
             // Update shipping and payment
             tvShippingAddress.text = order.shipping_address
@@ -253,9 +253,9 @@ class OrderSummaryActivity : AppCompatActivity() {
                 val product = productsMap[orderItem.product_id]
 
                 holder.productName.text = product?.name ?: "Product"
-                holder.productPrice.text = "$${String.format("%.2f", orderItem.price)}"
+                holder.productPrice.text = "₹${String.format("%.2f", orderItem.price)}"
                 holder.quantity.text = "Qty: ${orderItem.quantity}"
-                holder.subtotal.text = "$${String.format("%.2f", orderItem.subtotal)}"
+                holder.subtotal.text = "₹${String.format("%.2f", orderItem.subtotal)}"
             } catch (e: Exception) {
                 Log.e("OrderItemsAdapter", "Error binding view holder", e)
             }

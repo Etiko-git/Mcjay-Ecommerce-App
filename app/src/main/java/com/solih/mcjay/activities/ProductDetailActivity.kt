@@ -272,14 +272,14 @@ class ProductDetailActivity : AppCompatActivity() {
 
         // Handle pricing
         if (product.hasDiscount() && product.discount_price != null) {
-            binding.productPrice.text = "$${String.format("%.2f", product.price)}"
+            binding.productPrice.text = "₹${String.format("%.2f", product.price)}"
             binding.productPrice.paintFlags = android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
-            binding.discountPrice.text = "$${String.format("%.2f", product.discount_price)}"
+            binding.discountPrice.text = "₹${String.format("%.2f", product.discount_price)}"
             binding.discountPrice.visibility = View.VISIBLE
             binding.discountBadge.text = "${product.getDiscountPercentage()}% OFF"
             binding.discountBadge.visibility = View.VISIBLE
         } else {
-            binding.productPrice.text = "$${String.format("%.2f", product.price)}"
+            binding.productPrice.text = "₹${String.format("%.2f", product.price)}"
             binding.discountPrice.visibility = View.GONE
             binding.discountBadge.visibility = View.GONE
         }

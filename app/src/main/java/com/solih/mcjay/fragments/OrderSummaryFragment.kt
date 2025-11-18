@@ -156,10 +156,10 @@ class OrderSummaryFragment : Fragment() {
         val total = subtotal + shipping + tax
 
         // Update totals
-        binding.tvSubtotal.text = "$${String.format("%.2f", subtotal)}"
-        binding.tvShipping.text = "$${String.format("%.2f", shipping)}"
-        binding.tvTax.text = "$${String.format("%.2f", tax)}"
-        binding.tvTotal.text = "$${String.format("%.2f", total)}"
+        binding.tvSubtotal.text = "₹${String.format("%.2f", subtotal)}"
+        binding.tvShipping.text = "₹${String.format("%.2f", shipping)}"
+        binding.tvTax.text = "₹${String.format("%.2f", tax)}"
+        binding.tvTotal.text = "₹${String.format("%.2f", total)}"
 
         // Update shipping and payment
         binding.tvShippingAddress.text = order.shipping_address
@@ -219,9 +219,9 @@ class OrderSummaryFragment : Fragment() {
             val product = productsMap[orderItem.product_id]
 
             holder.productName.text = product?.name ?: "Product"
-            holder.productPrice.text = "$${String.format("%.2f", orderItem.price)}"
+            holder.productPrice.text = "₹${String.format("%.2f", orderItem.price)}"
             holder.quantity.text = "Qty: ${orderItem.quantity}"
-            holder.subtotal.text = "$${String.format("%.2f", orderItem.subtotal)}"
+            holder.subtotal.text = "₹${String.format("%.2f", orderItem.subtotal)}"
         }
 
         override fun getItemCount(): Int = orderItems.size

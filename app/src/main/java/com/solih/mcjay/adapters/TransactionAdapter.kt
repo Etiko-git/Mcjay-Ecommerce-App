@@ -24,9 +24,9 @@ class TransactionAdapter(
         fun bind(transaction: Transaction) {
             // Set amount with color based on type
             val amountText = if (transaction.type == "sale") {
-                "+$${String.format("%.2f", transaction.amount)}"
+                "+₹${String.format("%.2f", transaction.amount)}"
             } else {
-                "-$${String.format("%.2f", transaction.amount)}"
+                "-₹${String.format("%.2f", transaction.amount)}"
             }
 
             tvAmount.text = amountText

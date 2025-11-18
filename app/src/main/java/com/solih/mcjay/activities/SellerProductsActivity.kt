@@ -431,8 +431,8 @@ class SellerProductsActivity : AppCompatActivity() {
                 Category: ${product.category}
                 Brand: ${product.brand ?: "N/A"}
                 Type: ${product.type ?: "N/A"}
-                Price: $${String.format("%.2f", product.price)}
-                ${if (product.hasDiscount()) "Discount Price: $${String.format("%.2f", product.discount_price!!)}" else ""}
+                Price: ₹${String.format("%.2f", product.price)}
+                ${if (product.hasDiscount()) "Discount Price: ₹${String.format("%.2f", product.discount_price!!)}" else ""}
                 Stock: ${product.stock_quantity}
                 SKU: ${product.sku ?: "N/A"}
                 Status: ${if (product.is_active) "Active" else "Inactive"}

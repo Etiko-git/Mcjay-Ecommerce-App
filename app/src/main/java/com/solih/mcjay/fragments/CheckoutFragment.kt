@@ -190,10 +190,10 @@ class CheckoutFragment : Fragment() {
         val shipping = if (subtotal > 50.0) 0.0 else 5.0
         val tax = subtotal * 0.08
         val total = subtotal + shipping + tax
-        binding.tvSubtotal.text = "$${String.format("%.2f", subtotal)}"
-        binding.tvShipping.text = "$${String.format("%.2f", shipping)}"
-        binding.tvTax.text = "$${String.format("%.2f", tax)}"
-        binding.tvTotal.text = "$${String.format("%.2f", total)}"
+        binding.tvSubtotal.text = "₹${String.format("%.2f", subtotal)}"
+        binding.tvShipping.text = "₹${String.format("%.2f", shipping)}"
+        binding.tvTax.text = "₹${String.format("%.2f", tax)}"
+        binding.tvTotal.text = "₹${String.format("%.2f", total)}"
     }
 
     private fun placeOrder() {

@@ -44,8 +44,7 @@
                     android:id="@+id/ivProfileImage"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:src="@drawable/ic_store"
-                    android:tint="@color/purple_500"
+
                     android:background="@drawable/circle_background_white"
                     android:padding="16dp" />
 

@@ -110,7 +110,7 @@ class WithdrawalActivity : AppCompatActivity() {
 
         android.app.AlertDialog.Builder(this)
             .setTitle("Confirm Withdrawal")
-            .setMessage("Are you sure you want to withdraw $${String.format("%.2f", amount)} via $paymentMethodText?")
+            .setMessage("Are you sure you want to withdraw ₹${String.format("%.2f", amount)} via $paymentMethodText?")
             .setPositiveButton("Yes") { dialog, _ ->
                 dialog.dismiss()
                 processWithdrawal(amount, paymentMethod)
@@ -246,7 +246,7 @@ class WithdrawalActivity : AppCompatActivity() {
                 availableBalance = sellerBalance?.balance ?: 0.0
 
                 runOnUiThread {
-                    binding.tvAvailableBalance.text = "$${String.format("%.2f", availableBalance)}"
+                    binding.tvAvailableBalance.text = "₹${String.format("%.2f", availableBalance)}"
                     binding.progressBar.visibility = android.view.View.GONE
                 }
             } catch (e: Exception) {

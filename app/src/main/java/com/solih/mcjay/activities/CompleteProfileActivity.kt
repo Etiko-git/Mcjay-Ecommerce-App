@@ -3,6 +3,7 @@ package com.solih.mcjay.activities
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -11,10 +12,12 @@ import com.solih.mcjay.SupabaseClientInstance
 import com.solih.mcjay.databinding.ActivityCompleteProfileBinding
 import com.solih.mcjay.models.Seller
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable as KSerializable
+import java.util.UUID
 
 // Add this new data class for the update payload (can be in a separate file or here)
 @KSerializable
@@ -101,6 +104,7 @@ class CompleteProfileActivity : AppCompatActivity() {
             try {
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     type = "image/*"
+                    addCategory(Intent.CATEGORY_OPENABLE)
                 }
                 startActivityForResult(intent, PICK_IMAGE_REQUEST)
             } catch (e: Exception) {
@@ -129,8 +133,25 @@ class CompleteProfileActivity : AppCompatActivity() {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
             selectedImageUri = data.data
             Log.d(TAG, "Image selected: $selectedImageUri")
-            binding.tvImageStatus.text = "Image selected"
-            binding.tvImageStatus.setTextColor(getColor(android.R.color.holo_green_dark))
+
+            // Display the selected image name
+            selectedImageUri?.let { uri ->
+                val fileName = getFileNameFromUri(uri)
+                binding.tvImageStatus.text = "Selected: $fileName"
+                binding.tvImageStatus.setTextColor(getColor(android.R.color.holo_green_dark))
+            }
+        }
+    }
+
+    private fun getFileNameFromUri(uri: Uri): String {
+        return try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                cursor.moveToFirst()
+                cursor.getString(nameIndex)
+            } ?: "image.jpg"
+        } catch (e: Exception) {
+            "image.jpg"
         }
     }
 
@@ -199,9 +220,12 @@ class CompleteProfileActivity : AppCompatActivity() {
             try {
                 Log.d(TAG, "Starting profile update in coroutine")
 
-                // For now, use the URI string directly
-                val profileImageUrl = selectedImageUri?.toString()
-                Log.d(TAG, "Profile image URL: $profileImageUrl")
+                // Upload image to Supabase storage first
+                val profileImageUrl = selectedImageUri?.let { uri ->
+                    uploadImageToStorage(uri)
+                }
+
+                Log.d(TAG, "Profile image uploaded, URL: $profileImageUrl")
 
                 // Use the serializable data class
                 val updatePayload = SellerUpdate(
@@ -249,15 +273,73 @@ class CompleteProfileActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating profile: ${e.message}", e)
                 runOnUiThread {
-                    Toast.makeText(
-                        this@CompleteProfileActivity,
-                        "Error updating profile: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    handleSaveProfileError(e)
                     binding.btnSaveProfile.isEnabled = true
                     binding.btnSaveProfile.text = "Save Profile"
                 }
             }
         }
+    }
+
+    private suspend fun uploadImageToStorage(imageUri: Uri): String {
+        return try {
+            Log.d(TAG, "Starting image upload to storage")
+
+            // Generate unique file name
+            val fileExtension = getFileExtensionFromUri(imageUri)
+            val fileName = "${sellerProfile.id}/profile_${UUID.randomUUID()}.$fileExtension"
+
+            Log.d(TAG, "Uploading image with fileName: $fileName")
+
+            // Get file content from URI - same pattern as AddProductActivity
+            val inputStream = contentResolver.openInputStream(imageUri)
+            val fileBytes = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (fileBytes == null) {
+                Log.e(TAG, "Failed to read image bytes from URI")
+                throw Exception("Failed to read image file")
+            }
+
+            Log.d(TAG, "Image bytes read successfully, size: ${fileBytes.size}")
+
+            // Upload to Supabase Storage using ByteArray - same pattern as AddProductActivity
+            supabase.storage.from("seller-profiles").upload(
+                path = fileName,
+                data = fileBytes,
+            ) { // Add the options lambda here
+                this.upsert = true
+            }
+
+            // Get public URL for the uploaded image
+            val publicUrl = supabase.storage.from("seller-profiles").publicUrl(fileName)
+
+            Log.d(TAG, "Image uploaded successfully, public URL: $publicUrl")
+            publicUrl
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error uploading image to storage: ${e.message}", e)
+            throw Exception("Failed to upload image: ${e.message}")
+        }
+    }
+
+    private fun getFileExtensionFromUri(uri: Uri): String {
+        return contentResolver.getType(uri)?.substringAfterLast("/") ?: "jpg"
+    }
+
+    private fun handleSaveProfileError(e: Exception) {
+        val errorMessage = when {
+            e.message?.contains("network", ignoreCase = true) == true ->
+                "Network error. Please check your internet connection."
+            e.message?.contains("storage", ignoreCase = true) == true ->
+                "Storage error: ${e.message}"
+            e.message?.contains("bucket", ignoreCase = true) == true ->
+                "Storage bucket not found. Please create 'seller-profiles' bucket in Supabase."
+            e.message?.contains("RLS", ignoreCase = true) == true ->
+                "Permission denied. Please check your database policies."
+            else -> "Failed to update profile: ${e.message ?: "Unknown error"}"
+        }
+
+        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
     }
 }

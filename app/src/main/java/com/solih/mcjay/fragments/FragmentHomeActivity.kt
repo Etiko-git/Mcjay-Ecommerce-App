@@ -422,9 +422,9 @@ class HomeFragment : Fragment() {
 
         // Handle pricing
         if (product.hasDiscount()) {
-            productPrice.text = "$${product.discount_price} (Save ${product.getDiscountPercentage()}%)"
+            productPrice.text = "₹${product.discount_price} (Save ${product.getDiscountPercentage()}%)"
         } else {
-            productPrice.text = "$${product.price}"
+            productPrice.text = "₹${product.price}"
         }
 
         // Quantity management

@@ -43,8 +43,8 @@ class CartAdapter(
 
         if (product == null) {
             holder.nameTextView.text = "Product not available"
-            holder.priceTextView.text = "$0.00"
-            holder.totalPriceTextView.text = "$0.00"
+            holder.priceTextView.text = "₹0.00"
+            holder.totalPriceTextView.text = "₹0.00"
             holder.quantityTextView.text = cartItem.quantity.toString()
             holder.increaseButton.isEnabled = false
             holder.decreaseButton.isEnabled = false
@@ -63,11 +63,11 @@ class CartAdapter(
 
         holder.nameTextView.text = product.name
         val unitPrice = product.discount_price ?: product.price
-        holder.priceTextView.text = "$${String.format("%.2f", unitPrice)}"
+        holder.priceTextView.text = "₹${String.format("%.2f", unitPrice)}"
         holder.quantityTextView.text = cartItem.quantity.toString()
 
         val totalPrice = unitPrice * cartItem.quantity
-        holder.totalPriceTextView.text = "$${String.format("%.2f", totalPrice)}"
+        holder.totalPriceTextView.text = "₹${String.format("%.2f", totalPrice)}"
 
         holder.increaseButton.setOnClickListener { onItemAction(cartItem, "increase") }
         holder.decreaseButton.setOnClickListener { onItemAction(cartItem, "decrease") }

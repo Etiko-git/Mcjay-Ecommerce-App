@@ -44,11 +44,11 @@ class CheckoutAdapter(
             }
 
             holder.productName.text = it.name
-            holder.productPrice.text = "$${String.format("%.2f", it.discount_price ?: it.price)}"
+            holder.productPrice.text = "₹${String.format("%.2f", it.discount_price ?: it.price)}"
             holder.productQuantity.text = "Qty: ${cartItem.quantity}"
 
             val itemTotal = (it.discount_price ?: it.price) * cartItem.quantity
-            holder.itemTotal.text = "$${String.format("%.2f", itemTotal)}"
+            holder.itemTotal.text = "₹${String.format("%.2f", itemTotal)}"
         }
     }
 
