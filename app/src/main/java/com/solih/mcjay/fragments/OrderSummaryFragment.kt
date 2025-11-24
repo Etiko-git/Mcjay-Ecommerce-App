@@ -5,12 +5,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.solih.mcjay.R
 import com.solih.mcjay.databinding.FragmentOrderSummaryBinding
 import com.solih.mcjay.models.Order
@@ -114,15 +116,15 @@ class OrderSummaryFragment : Fragment() {
                 val productIds = items.map { it.product_id }.distinct()
                 for (productId in productIds) {
                     try {
-                        val product = withContext(Dispatchers.IO) {
+                        val products = withContext(Dispatchers.IO) {
                             com.solih.mcjay.SupabaseClientInstance.client.postgrest["products"]
                                 .select {
                                     filter { eq("product_id", productId) }
                                 }
                                 .decodeList<Product>()
                         }
-                        if (product.isNotEmpty()) {
-                            productsMap[productId] = product[0]
+                        if (products.isNotEmpty()) {
+                            productsMap[productId] = products[0]
                         }
                     } catch (e: Exception) {
                         Log.e("OrderSummary", "Error loading product $productId", e)
@@ -202,6 +204,7 @@ class OrderSummaryFragment : Fragment() {
     ) : RecyclerView.Adapter<OrderItemsAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val productImage: ImageView = itemView.findViewById(R.id.ivProductImage)
             val productName: TextView = itemView.findViewById(R.id.tvProductName)
             val productPrice: TextView = itemView.findViewById(R.id.tvPrice)
             val quantity: TextView = itemView.findViewById(R.id.tvQuantity)
@@ -217,6 +220,18 @@ class OrderSummaryFragment : Fragment() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val orderItem = orderItems[position]
             val product = productsMap[orderItem.product_id]
+
+            // Load product image using Glide
+            if (product != null && !product.getFirstImageUrl().isNullOrEmpty()) {
+                Glide.with(holder.itemView.context)
+                    .load(product.getFirstImageUrl())
+                    .placeholder(R.drawable.ic_placeholder)
+                    .error(R.drawable.ic_placeholder)
+                    .into(holder.productImage)
+            } else {
+                // Set placeholder if no image found
+                holder.productImage.setImageResource(R.drawable.ic_placeholder)
+            }
 
             holder.productName.text = product?.name ?: "Product"
             holder.productPrice.text = "₹${String.format("%.2f", orderItem.price)}"

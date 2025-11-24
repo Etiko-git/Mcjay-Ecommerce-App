@@ -45,8 +45,8 @@ class AdminHomeActivity : AppCompatActivity() {
         binding.btnAnalytics.setOnClickListener {
             Toast.makeText(this, "Analytics & Reporting", Toast.LENGTH_SHORT).show()
             // Start AnalyticsActivity
-            // val intent = Intent(this, AnalyticsActivity::class.java)
-            // startActivity(intent)
+             val intent = Intent(this, AnalyticsActivity::class.java)
+             startActivity(intent)
         }
 
         binding.btnManageUsers.setOnClickListener {
@@ -62,8 +62,8 @@ class AdminHomeActivity : AppCompatActivity() {
         binding.btnManageOrders.setOnClickListener {
             Toast.makeText(this, "Manage Orders", Toast.LENGTH_SHORT).show()
             // Start ManageOrdersActivity
-            // val intent = Intent(this, ManageOrdersActivity::class.java)
-            // startActivity(intent)
+             val intent = Intent(this, ManageOrdersActivity::class.java)
+             startActivity(intent)
         }
 
         binding.btnLogout.setOnClickListener {

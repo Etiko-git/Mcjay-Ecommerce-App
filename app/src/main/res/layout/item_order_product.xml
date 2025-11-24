@@ -2,19 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="horizontal"
     android:padding="12dp"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true">
 
+    <!-- Add this ImageView to your item_order_product.xml layout -->
     <ImageView
         android:id="@+id/ivProductImage"
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:scaleType="centerCrop"
         android:background="@color/gray_light"
-        android:contentDescription="Product image" />
+        android:layout_marginEnd="12dp"
+        app:cornerRadius="8dp" />
 
     <LinearLayout
         android:layout_width="0dp"

@@ -117,28 +117,28 @@
                         android:padding="16dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
                             android:src="@drawable/ic_profile"
                             android:tint="@color/blue_500" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="75dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
                             android:text="Total Users"
                             android:textColor="@color/gray"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp" />
+                            android:textSize="12sp" />
 
                         <TextView
                             android:id="@+id/tvTotalUsers"
-                            android:layout_width="wrap_content"
+                            android:layout_width="61dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
                             android:text="1,254"
                             android:textColor="@color/black"
                             android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -176,13 +176,13 @@
 
                         <TextView
                             android:id="@+id/tvTotalProducts"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="67dp"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="4dp"
                             android:text="589"
                             android:textColor="@color/black"
                             android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>

@@ -6,6 +6,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.solih.mcjay.R
 import com.solih.mcjay.models.Order
 import com.solih.mcjay.models.OrderItem
@@ -135,7 +136,7 @@ class OrderSummaryActivity : AppCompatActivity() {
                 val productIds = items.map { it.product_id }.distinct()
                 for (productId in productIds) {
                     try {
-                        val product = withContext(Dispatchers.IO) {
+                        val products = withContext(Dispatchers.IO) {
                             com.solih.mcjay.SupabaseClientInstance.client.postgrest["products"]
                                 .select {
                                     // Try both product_id and id fields
@@ -145,8 +146,9 @@ class OrderSummaryActivity : AppCompatActivity() {
                                 }
                                 .decodeList<Product>()
                         }
-                        if (product.isNotEmpty()) {
-                            productsMap[productId] = product[0]
+                        if (products.isNotEmpty()) {
+                            productsMap[productId] = products[0]
+                            Log.d("OrderSummary", "Loaded product: ${products[0].name} with ID: $productId")
                         } else {
                             Log.w("OrderSummary", "Product not found: $productId")
                         }
@@ -235,6 +237,7 @@ class OrderSummaryActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<OrderItemsAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: android.view.View) : RecyclerView.ViewHolder(itemView) {
+            val productImage: ImageView = itemView.findViewById(R.id.ivProductImage)
             val productName: TextView = itemView.findViewById(R.id.tvProductName)
             val productPrice: TextView = itemView.findViewById(R.id.tvPrice)
             val quantity: TextView = itemView.findViewById(R.id.tvQuantity)
@@ -251,6 +254,20 @@ class OrderSummaryActivity : AppCompatActivity() {
             try {
                 val orderItem = orderItems[position]
                 val product = productsMap[orderItem.product_id]
+
+                // Load product image using Glide
+                if (product != null && !product.getFirstImageUrl().isNullOrEmpty()) {
+                    Glide.with(holder.itemView.context)
+                        .load(product.getFirstImageUrl())
+                        .placeholder(R.drawable.ic_placeholder)
+                        .error(R.drawable.ic_placeholder)
+                        .into(holder.productImage)
+                    Log.d("OrderItemsAdapter", "Loading image for product: ${product.name}")
+                } else {
+                    // Set placeholder if no image found
+                    holder.productImage.setImageResource(R.drawable.ic_placeholder)
+                    Log.w("OrderItemsAdapter", "No image found for product: ${product?.name ?: orderItem.product_id}")
+                }
 
                 holder.productName.text = product?.name ?: "Product"
                 holder.productPrice.text = "₹${String.format("%.2f", orderItem.price)}"

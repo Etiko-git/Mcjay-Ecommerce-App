@@ -78,6 +78,8 @@
         <activity android:name=".activities.ManageProductsActivity" />
         <activity android:name=".activities.ManageUsersActivity" />
         <activity android:name=".activities.ManageSellersActivity" />
+        <activity android:name=".activities.ManageOrdersActivity" />
+        <activity android:name=".activities.AnalyticsActivity" />
 
 
         <!-- Add this new entry for MyIDLoginActivity -->
