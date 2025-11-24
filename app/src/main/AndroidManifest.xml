@@ -69,6 +69,16 @@
         <activity android:name=".activities.SalesAnalysisActivity" />
         <activity android:name=".activities.SellerEarningsActivity" />
         <activity android:name=".activities.WithdrawalActivity" />
+        <activity android:name=".activities.EditProductActivity" />
+        <activity android:name=".activities.AdminLoginActivity" />
+        <activity android:name=".activities.AdminHomeActivity" />
+
+
+
+        <activity android:name=".activities.ManageProductsActivity" />
+        <activity android:name=".activities.ManageUsersActivity" />
+        <activity android:name=".activities.ManageSellersActivity" />
+
 
         <!-- Add this new entry for MyIDLoginActivity -->
 <!--        <activity-->

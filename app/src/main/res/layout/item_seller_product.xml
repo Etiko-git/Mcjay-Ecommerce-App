@@ -163,27 +163,26 @@
                     android:id="@+id/btnEdit"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="36dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="4dp"
-                    android:text="Edit"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     app:icon="@drawable/ic_edit"
-                    app:iconSize="16dp" />
+                    app:iconSize="14dp"
+                    app:minHeight="0dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDelete"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="36dp"
                     android:layout_weight="1"
                     android:layout_marginStart="4dp"
-                    android:text="Delete"
-                    android:textSize="12sp"
+                    android:textSize="10sp"
                     app:icon="@drawable/ic_delete"
-                    app:iconSize="16dp"
+                    app:iconSize="14dp"
                     app:strokeColor="@color/error_color"
-                    />
+                    app:minHeight="0dp" />
 
             </LinearLayout>
 

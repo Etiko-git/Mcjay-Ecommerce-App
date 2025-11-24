@@ -35,16 +35,27 @@
 
             <!-- Title -->
             <TextView
+                android:id="@+id/title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:text="Add New Product"
+                android:text="Edit Product"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/black" />
 
         </RelativeLayout>
 
+        <!-- Seller Info -->
+        <TextView
+            android:id="@+id/tvSellerInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Editing product: Loading..."
+            android:textSize="14sp"
+            android:textColor="@color/gray"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
 
         <!-- Product Name -->
         <com.google.android.material.textfield.TextInputLayout
@@ -163,7 +174,7 @@
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
                 app:boxCornerRadiusTopStart="12dp"
-               >
+                >
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etType"
@@ -377,7 +388,7 @@
                     android:layout_height="24dp"
                     android:layout_marginEnd="12dp"
                     android:src="@drawable/ic_active"
-                     />
+                    />
 
                 <TextView
                     android:layout_width="0dp"
@@ -404,11 +415,11 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Add Product"
+            android:text="Update Product"
             android:textSize="16sp"
             android:textStyle="bold"
             android:paddingVertical="16dp"
-            app:icon="@drawable/ic_add_cart"
+            app:icon="@drawable/ic_save"
             app:iconPadding="8dp" />
 
         <!-- Progress Bar -->
@@ -419,17 +430,6 @@
             android:layout_marginTop="16dp"
             android:visibility="gone"
             app:indicatorColor="@color/purple_500" />
-
-        <!-- Add this after the header RelativeLayout -->
-        <TextView
-            android:id="@+id/tvSellerInfo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Adding product as: Loading..."
-            android:textSize="14sp"
-            android:textColor="@color/gray"
-            android:gravity="center"
-            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 

@@ -127,7 +127,7 @@ class SalesReportsActivity : AppCompatActivity() {
         binding.exportButtons.visibility = android.view.View.GONE
 
         // Reset UI to default state
-        binding.tvTotalSales.text = "$0.00"
+        binding.tvTotalSales.text = "₹0.00"
         binding.tvTotalOrders.text = "0 orders"
         binding.tvTotalItems.text = "0 items"
     }

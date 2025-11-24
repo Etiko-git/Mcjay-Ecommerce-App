@@ -240,6 +240,8 @@ class CheckoutFragment : Fragment() {
                     "UPI" -> simulateUPIPayment(orderId, orderNumber)
                     "Cash on Delivery" -> {
                         createPaymentRecord(orderId, orderNumber, total, paymentMethod, "pending")
+                        processOrderItems()
+                        clearUserCart()
                         completeOrder(orderId, orderNumber, "Order placed successfully! Payment will be collected on delivery.")
                     }
                 }
@@ -385,6 +387,8 @@ class CheckoutFragment : Fragment() {
                 if (isSuccess) {
                     updateOrderStatus(orderId, "Paid", "Confirmed")
                     createPaymentRecord(orderId, orderNumber, pendingTotalAmount, pendingPaymentMethod, "completed")
+                    processOrderItems()
+                    clearUserCart()
                     completeOrder(orderId, orderNumber, "✅ UPI payment successful! Order confirmed.")
                 } else {
                     createPaymentRecord(orderId, orderNumber, pendingTotalAmount, pendingPaymentMethod, "failed")
@@ -397,22 +401,21 @@ class CheckoutFragment : Fragment() {
         }
     }
 
-    private suspend fun completeStripeOrder() {
+    private suspend fun processOrderItems() {
         try {
-            Log.d("CheckoutFragment", "Starting completeStripeOrder with ${cartItems.size} cart items")
-            // Create order items for the pending order
+            Log.d("CheckoutFragment", "Starting processOrderItems with ${cartItems.size} cart items")
             for (cartItem in cartItems) {
                 val product = productsMap[cartItem.product_id]
                 Log.d("CheckoutFragment", "Processing cart item: product_id=${cartItem.product_id}, product=$product")
-                if (product == null) {
-                    Log.e("CheckoutFragment", "❌ Product not found for cart item: ${cartItem.product_id}")
+                if (product == null || product.id == null) {
+                    Log.e("CheckoutFragment", "❌ Product or product ID not found for cart item: ${cartItem.product_id}")
                     continue
                 }
                 val unitPrice = product.discount_price ?: product.price ?: 0.0
                 val actualProductId = if (!product.product_id.isNullOrEmpty()) {
                     product.product_id
                 } else {
-                    product.id?.toString() ?: cartItem.product_id.toString()
+                    product.id.toString()
                 }
                 Log.d("CheckoutFragment", "Using product_id: $actualProductId for order item")
                 createOrderItemBasic(
@@ -424,13 +427,48 @@ class CheckoutFragment : Fragment() {
                     price = unitPrice,
                     subtotal = unitPrice * cartItem.quantity
                 )
+                // Update stock quantity
+                updateProductStock(product.id, cartItem.quantity)
             }
+            Log.d("CheckoutFragment", "✅ All order items processed and stocks updated")
+        } catch (e: Exception) {
+            Log.e("CheckoutFragment", "Error processing order items", e)
+            throw e
+        }
+    }
+
+    private suspend fun completeStripeOrder() {
+        try {
+            processOrderItems()
             // Clear cart after successful order
             clearUserCart()
             completeOrder(pendingOrderId, pendingOrderNumber, "✅ Card payment successful! Order confirmed.")
         } catch (e: Exception) {
             Log.e("CheckoutFragment", "Error completing Stripe order", e)
             handlePaymentFailure("Error completing order: ${e.message}")
+        }
+    }
+
+    private suspend fun updateProductStock(productId: Int, quantityToReduce: Int) {
+        withContext(Dispatchers.IO) {
+            try {
+                val currentProduct = supabase.postgrest.from("products")
+                    .select {
+                        filter { eq("id", productId) }
+                    }
+                    .decodeSingle<Product>()
+                val newStock = (currentProduct.stock_quantity - quantityToReduce).coerceAtLeast(0)
+                supabase.postgrest.from("products")
+                    .update({
+                        set("stock_quantity", newStock)
+                    }) {
+                        filter { eq("id", productId) }
+                    }
+                Log.d("CheckoutFragment", "✅ Updated stock for product $productId to $newStock")
+            } catch (e: Exception) {
+                Log.e("CheckoutFragment", "❌ Error updating stock for product $productId", e)
+                throw e
+            }
         }
     }
 
@@ -587,14 +625,12 @@ class CheckoutFragment : Fragment() {
                 for ((sellerId, sellerCartItems) in sellerGroups) {
                     try {
                         Log.d("PaymentDebug", "💰 Processing payment for seller: $sellerId")
-
                         // Calculate this seller's subtotal
                         val sellerSubtotal = sellerCartItems.sumOf { cartItem ->
                             val product = productsMap[cartItem.product_id]
                             val unitPrice = product?.discount_price ?: product?.price ?: 0.0
                             unitPrice * cartItem.quantity
                         }
-
                         // Calculate this seller's proportion of the total
                         val sellerProportion = sellerSubtotal / totalSubtotal
                         val sellerShare = totalAmount * sellerProportion
@@ -888,7 +924,6 @@ class CheckoutFragment : Fragment() {
             Log.d("PaymentDebug", "Seller Amount: $sellerAmount, Company Amount: $companyAmount")
             // Update seller balance using direct database operations
             updateSellerBalanceDirect(sellerId, sellerAmount)
-
             // Update company balance using direct database operations
             updateCompanyBalanceDirect(companyAmount)
             Log.d("PaymentDebug", "✅ Balances updated successfully for seller: $sellerId")
@@ -918,16 +953,13 @@ class CheckoutFragment : Fragment() {
                         total_earnings = amountToAdd,
                         updated_at = timestamp
                     )
-
                     supabase.postgrest.from("seller_balance")
                         .insert(newSellerBalance)
-
                     Log.d("PaymentDebug", "✅ New seller balance record created for: $sellerId")
                 } else {
                     // Update existing record using set builder to avoid serialization issues
                     val newBalance = currentBalanceResult.balance + amountToAdd
                     val newTotalEarnings = currentBalanceResult.total_earnings + amountToAdd
-
                     supabase.postgrest.from("seller_balance")
                         .update({
                             set("balance", newBalance)
@@ -936,7 +968,6 @@ class CheckoutFragment : Fragment() {
                         }) {
                             filter { eq("seller_id", sellerId) }
                         }
-
                     Log.d("PaymentDebug", "✅ Seller balance updated for: $sellerId - New Balance: $newBalance")
                 }
             }
@@ -966,16 +997,13 @@ class CheckoutFragment : Fragment() {
                         total_commission_earned = amountToAdd,
                         updated_at = timestamp
                     )
-
                     supabase.postgrest.from("company_balance")
                         .insert(newCompanyBalance)
-
                     Log.d("PaymentDebug", "✅ New company balance record created")
                 } else {
                     // Update existing record using set builder to avoid serialization issues
                     val newBalance = currentBalanceResult.company_balance + amountToAdd
                     val newTotalCommission = currentBalanceResult.total_commission_earned + amountToAdd
-
                     supabase.postgrest.from("company_balance")
                         .update({
                             set("company_balance", newBalance)
@@ -984,7 +1012,6 @@ class CheckoutFragment : Fragment() {
                         }) {
                             filter { eq("id", 1) }
                         }
-
                     Log.d("PaymentDebug", "✅ Company balance updated - New Balance: $newBalance")
                 }
             }

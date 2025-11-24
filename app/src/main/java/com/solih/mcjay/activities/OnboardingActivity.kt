@@ -53,6 +53,11 @@ class OnboardingActivity : AppCompatActivity() {
             startActivity(Intent(this, SellerRegistrationActivity::class.java))
             finish()
         }
+
+        binding.adminLoginButton.setOnClickListener {
+            startActivity(Intent(this, AdminLoginActivity::class.java))
+            finish()
+        }
     }
 
     override fun onResume() {

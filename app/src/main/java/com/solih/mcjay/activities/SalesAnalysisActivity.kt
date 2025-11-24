@@ -241,7 +241,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
     }
 
     private fun updateRevenueUI(totalRevenue: Double) {
-        binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
+        binding.tvTotalRevenue.text = "₹${String.format("%.2f", totalRevenue)}"
         //binding.tvPeriod.text = "Period: $startDate to $endDate"
         Log.d("SalesAnalysis", "Revenue UI updated: $totalRevenue")
     }
@@ -272,7 +272,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
             dates.add(displayDate)
         }
 
-        val dataSet = LineDataSet(entries, "Daily Sales Amount ($)")
+        val dataSet = LineDataSet(entries, "Daily Sales Amount (₹)")
         dataSet.color = Color.parseColor("#6200EE")
         dataSet.valueTextColor = Color.BLACK
         dataSet.lineWidth = 2f
@@ -285,7 +285,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
         // Set value formatter to show currency
         dataSet.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                return "$${String.format("%.2f", value)}"
+                return "₹${String.format("%.2f", value)}"
             }
         }
 
@@ -324,7 +324,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
         yAxis.axisLineWidth = 1f
         yAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                return "$${String.format("%.0f", value)}"
+                return "₹${String.format("%.0f", value)}"
             }
         }
         yAxis.labelCount = 6
@@ -335,7 +335,7 @@ class SalesAnalysisActivity : AppCompatActivity() {
         rightYAxis.setDrawGridLines(false)
         rightYAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                return "$${String.format("%.0f", value)}"
+                return "₹${String.format("%.0f", value)}"
             }
         }
         rightYAxis.labelCount = 6
@@ -359,15 +359,15 @@ class SalesAnalysisActivity : AppCompatActivity() {
         }
 
         if (topProducts.isNotEmpty()) {
-            binding.tvProduct1.text = "1. ${topProducts[0].productName} - $${String.format("%.2f", topProducts[0].totalSales)} (${topProducts[0].totalQuantity} sold)"
+            binding.tvProduct1.text = "1. ${topProducts[0].productName} - ₹${String.format("%.2f", topProducts[0].totalSales)} (${topProducts[0].totalQuantity} sold)"
             binding.tvProduct1.visibility = android.view.View.VISIBLE
         }
         if (topProducts.size > 1) {
-            binding.tvProduct2.text = "2. ${topProducts[1].productName} - $${String.format("%.2f", topProducts[1].totalSales)} (${topProducts[1].totalQuantity} sold)"
+            binding.tvProduct2.text = "2. ${topProducts[1].productName} - ₹${String.format("%.2f", topProducts[1].totalSales)} (${topProducts[1].totalQuantity} sold)"
             binding.tvProduct2.visibility = android.view.View.VISIBLE
         }
         if (topProducts.size > 2) {
-            binding.tvProduct3.text = "3. ${topProducts[2].productName} - $${String.format("%.2f", topProducts[2].totalSales)} (${topProducts[2].totalQuantity} sold)"
+            binding.tvProduct3.text = "3. ${topProducts[2].productName} - ₹${String.format("%.2f", topProducts[2].totalSales)} (${topProducts[2].totalQuantity} sold)"
             binding.tvProduct3.visibility = android.view.View.VISIBLE
         }
     }
