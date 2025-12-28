@@ -98,7 +98,7 @@
                 android:id="@+id/tvTotalAmount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="$99.99"
+                android:text="99.99"
                 android:textSize="16sp"
                 android:textColor="@color/black"
                 android:textStyle="bold" />

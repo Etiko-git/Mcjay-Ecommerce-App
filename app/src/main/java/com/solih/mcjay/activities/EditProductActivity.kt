@@ -15,7 +15,6 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.solih.mcjay.R
 import com.solih.mcjay.SupabaseClientInstance
 import com.solih.mcjay.adapters.ImagePreviewAdapter
-import com.solih.mcjay.databinding.ActivityAddProductBinding
 import com.solih.mcjay.databinding.ActivityEditProductBinding
 import com.solih.mcjay.models.Product
 import io.github.jan.supabase.postgrest.postgrest
@@ -23,6 +22,7 @@ import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.add
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -188,10 +188,6 @@ class EditProductActivity : AppCompatActivity() {
         val isActive = intent.getBooleanExtra("product_is_active", true)
         binding.switchActive.isChecked = isActive
 
-        // Update UI title
-//        val titleView = findViewById<TextView>(R.id.title)
-//        titleView?.text = "Edit Product"
-
         // Update seller info
         binding.tvSellerInfo.text = "Editing product: ${intent.getStringExtra("product_name")}"
 
@@ -200,8 +196,6 @@ class EditProductActivity : AppCompatActivity() {
     }
 
     private fun loadExistingImages() {
-        // In a real app, you would fetch the product with images from the database
-        // For now, we'll use the data from intent or fetch from database
         scope.launch {
             try {
                 val product = withContext(Dispatchers.IO) {
@@ -213,12 +207,15 @@ class EditProductActivity : AppCompatActivity() {
                 }
 
                 // Extract image URLs from product
-                product.images?.let { imagesJson ->
-                    val urls = product.getImageUrls()
-                    existingImageUrls.clear()
-                    existingImageUrls.addAll(urls)
-                    updateImagePreview()
-                }
+                val urls = product.getImageUrls()
+                existingImageUrls.clear()
+                existingImageUrls.addAll(urls)
+
+                Log.d("EditProduct", "Loaded ${urls.size} existing images")
+
+                // Update UI to show existing images
+                // You might need to update your ImagePreviewAdapter to handle both Uris and URLs
+                updateImagePreview()
 
             } catch (e: Exception) {
                 Log.e("EditProduct", "Error loading product images: ${e.message}", e)
@@ -340,7 +337,7 @@ class EditProductActivity : AppCompatActivity() {
                     existingImageUrls
                 }
 
-                // Step 3: Prepare images JSON
+                // Step 3: Create JsonElement for images
                 val imagesJson = if (allImageUrls.isNotEmpty()) {
                     buildJsonArray {
                         allImageUrls.forEach { url ->
@@ -351,22 +348,36 @@ class EditProductActivity : AppCompatActivity() {
                     null
                 }
 
-                // Step 4: Update product in database
-                val updatedProduct = mapOf(
-                    "name" to name,
-                    "description" to description.takeIf { it.isNotEmpty() },
-                    "category" to category,
-                    "type" to type.takeIf { it.isNotEmpty() },
-                    "brand" to brand.takeIf { it.isNotEmpty() },
-                    "price" to price,
-                    "discount_price" to discountPrice,
-                    "stock_quantity" to stockQuantity,
-                    "sku" to sku.takeIf { it.isNotEmpty() },
-                    "images" to imagesJson,
-                    "is_active" to isActive
+                // Step 4: Get current timestamp in ISO format for PostgreSQL
+                val currentTime = java.time.Instant.now().toString()
+                // Alternative: If you don't have java.time, use SimpleDateFormat
+                // val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(Date())
+
+                // Step 5: Create a Product object with the updated values
+                val updatedProduct = Product(
+                    product_id = productId,
+                    name = name,
+                    description = description.takeIf { it.isNotEmpty() },
+                    category = category,
+                    type = type.takeIf { it.isNotEmpty() },
+                    brand = brand.takeIf { it.isNotEmpty() },
+                    price = price,
+                    discount_price = discountPrice,
+                    stock_quantity = stockQuantity,
+                    sku = sku.takeIf { it.isNotEmpty() },
+                    images = imagesJson,
+                    is_active = isActive,
+                    updated_at = currentTime, // Use ISO format timestamp
+                    // Keep existing values for fields not being updated
+                    id = null, // This will be ignored in update
+                    ratings = 0f, // Keep existing
+                    reviews_count = 0, // Keep existing
+                    created_at = null, // Keep existing
+                    seller_id = null, // Keep existing
+                    seller_name = null // Keep existing
                 )
 
-                // Step 5: Update product in database
+                // Step 6: Update product in database using the Product object
                 withContext(Dispatchers.IO) {
                     supabase.postgrest["products"]
                         .update(updatedProduct) {
@@ -417,7 +428,7 @@ class EditProductActivity : AppCompatActivity() {
 
                 if (fileBytes != null) {
                     // Upload to Supabase Storage using ByteArray
-                    val result = supabase.storage["product-images"].upload(
+                    supabase.storage["product-images"].upload(
                         path = fileName,
                         data = fileBytes
                     )
@@ -477,22 +488,5 @@ class EditProductActivity : AppCompatActivity() {
         binding.etStockQuantity.isEnabled = !isLoading
         binding.etSku.isEnabled = !isLoading
         binding.switchActive.isEnabled = !isLoading
-    }
-
-    private fun editProduct(product: Product) {
-        val intent = Intent(this, EditProductActivity::class.java).apply {
-            putExtra("product_id", product.product_id)
-            putExtra("product_name", product.name)
-            putExtra("product_description", product.description ?: "")
-            putExtra("product_category", product.category)
-            putExtra("product_type", product.type ?: "")
-            putExtra("product_brand", product.brand ?: "")
-            putExtra("product_price", product.price)
-            putExtra("product_discount_price", product.discount_price ?: 0.0)
-            putExtra("product_stock_quantity", product.stock_quantity)
-            putExtra("product_sku", product.sku ?: "")
-            putExtra("product_is_active", product.is_active)
-        }
-        startActivity(intent)
     }
 }

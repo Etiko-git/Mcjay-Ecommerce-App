@@ -18,8 +18,8 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
         android:layout_margin="4dp"
-        android:src="@drawable/ic_close"
-        android:background="@drawable/circle_background"
+        android:src="@drawable/ic_cl"
+        android:background="@drawable/bg_card"
         android:padding="4dp" />
 
 </RelativeLayout>

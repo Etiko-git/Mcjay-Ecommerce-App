@@ -44,7 +44,7 @@ class SellerOrdersAdapter(
         // Set basic order information
         holder.tvOrderNumber.text = "Order #${order.order_number ?: "N/A"}"
         holder.tvOrderDate.text = formatDateSimple(order.created_at)
-        holder.tvTotalAmount.text = "$${String.format("%.2f", order.total_amount)}"
+        holder.tvTotalAmount.text = "₹${String.format("%.2f", order.total_amount)}"
         holder.tvItemCount.text = "${orderItems.size} items"
         holder.tvShippingAddress.text = order.shipping_address ?: "No address"
 

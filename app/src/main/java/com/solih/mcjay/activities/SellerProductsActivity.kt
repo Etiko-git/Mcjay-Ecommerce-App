@@ -27,6 +27,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SellerProductsActivity : AppCompatActivity() {
 
@@ -446,7 +447,20 @@ class SellerProductsActivity : AppCompatActivity() {
     }
 
     private fun editProduct(product: Product) {
-        Toast.makeText(this, "Edit product: ${product.name}", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, EditProductActivity::class.java).apply {
+            putExtra("product_id", product.product_id)
+            putExtra("product_name", product.name)
+            putExtra("product_description", product.description ?: "")
+            putExtra("product_category", product.category)
+            putExtra("product_type", product.type ?: "")
+            putExtra("product_brand", product.brand ?: "")
+            putExtra("product_price", product.price)
+            putExtra("product_discount_price", product.discount_price ?: 0.0)
+            putExtra("product_stock_quantity", product.stock_quantity)
+            putExtra("product_sku", product.sku ?: "")
+            putExtra("product_is_active", product.is_active)
+        }
+        startActivity(intent)
     }
 
     private fun showDeleteConfirmation(product: Product) {
@@ -489,13 +503,16 @@ class SellerProductsActivity : AppCompatActivity() {
     private fun toggleProductStatus(product: Product, isActive: Boolean) {
         scope.launch {
             try {
-                supabase.postgrest["products"]
-                    .update({
-                        set("is_active", isActive)
-                        set("updated_at", System.currentTimeMillis().toString())
-                    }) {
-                        filter { eq("product_id", product.product_id) }
-                    }
+                // Use the Supabase DSL to update with proper timestamp
+                withContext(Dispatchers.IO) {
+                    supabase.postgrest["products"]
+                        .update({
+                            set("is_active", isActive)
+                            set("updated_at", "now()") // Use PostgreSQL's now() function
+                        }) {
+                            filter { eq("product_id", product.product_id) }
+                        }
+                }
 
                 runOnUiThread {
                     Toast.makeText(
@@ -509,7 +526,11 @@ class SellerProductsActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("SellerProducts", "Error updating product status: ${e.message}", e)
                 runOnUiThread {
-                    Toast.makeText(this@SellerProductsActivity, "Error updating product status", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@SellerProductsActivity,
+                        "Error updating product status: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

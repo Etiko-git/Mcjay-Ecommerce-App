@@ -69,7 +69,10 @@
         <activity android:name=".activities.SalesAnalysisActivity" />
         <activity android:name=".activities.SellerEarningsActivity" />
         <activity android:name=".activities.WithdrawalActivity" />
-        <activity android:name=".activities.EditProductActivity" />
+        <activity
+            android:name=".activities.EditProductActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
         <activity android:name=".activities.AdminLoginActivity" />
         <activity android:name=".activities.AdminHomeActivity" />
 

@@ -1,5 +1,6 @@
 package com.solih.mcjay.activities
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -39,7 +40,7 @@ class SellerOrdersActivity : AppCompatActivity() {
     private val orderItemsMap = mutableMapOf<Int, List<OrderItem>>()
     private val customerMap = mutableMapOf<String, User>()
     private var currentFilter = "All"
-    private var currentDateFilter = "All"
+    private var selectedDate: String? = null
     private var currentSearchQuery = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +50,8 @@ class SellerOrdersActivity : AppCompatActivity() {
 
         setupToolbar()
         setupRecyclerView()
-        setupFilterSpinners()
+        setupFilterSpinner()
+        setupDatePicker()
         setupSearch()
         setupClickListeners()
         getCurrentSeller()
@@ -74,7 +76,7 @@ class SellerOrdersActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupFilterSpinners() {
+    private fun setupFilterSpinner() {
         // Status filter
         val statusOptions = arrayOf("All Orders", "Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled")
         val statusAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, statusOptions)
@@ -98,34 +100,61 @@ class SellerOrdersActivity : AppCompatActivity() {
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
+    }
 
-        // Date filter
-        val dateOptions = arrayOf("All Time", "Today", "Last 7 Days", "Last 30 Days", "This Month")
-        val dateAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, dateOptions)
-        dateAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerDateFilter.adapter = dateAdapter
-
-        binding.spinnerDateFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                currentDateFilter = when (position) {
-                    0 -> "All"
-                    1 -> "Today"
-                    2 -> "Last7Days"
-                    3 -> "Last30Days"
-                    4 -> "ThisMonth"
-                    else -> "All"
-                }
-                applyFilters()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+    private fun setupDatePicker() {
+        binding.dateFilterLayout.setOnClickListener {
+            showDatePickerDialog()
         }
+
+        binding.ivClearDate.setOnClickListener {
+            clearDateFilter()
+        }
+    }
+
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, selectedYear, selectedMonth, selectedDay ->
+                // Note: Month is 0-based in DatePickerDialog
+                val actualMonth = selectedMonth + 1
+
+                // Format the date as yyyy-MM-dd
+                selectedDate = String.format("%04d-%02d-%02d", selectedYear, actualMonth, selectedDay)
+
+                // Update UI
+                binding.tvDateFilter.text = selectedDate
+                binding.ivClearDate.visibility = View.VISIBLE
+
+                // Apply filters
+                applyFilters()
+            },
+            year,
+            month,
+            day
+        )
+
+        datePickerDialog.show()
+    }
+
+    private fun clearDateFilter() {
+        selectedDate = null
+        binding.tvDateFilter.text = "Select Date"
+        binding.ivClearDate.visibility = View.GONE
+        applyFilters()
     }
 
     private fun setupSearch() {
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.ivClearSearch.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+            }
             override fun afterTextChanged(s: Editable?) {
                 currentSearchQuery = s.toString().trim()
                 applyFilters()
@@ -233,7 +262,7 @@ class SellerOrdersActivity : AppCompatActivity() {
                 }
 
                 // Update adapter with customer data
-                ordersAdapter.updateCustomerMap(customerMap) // Add this line
+                ordersAdapter.updateCustomerMap(customerMap)
 
                 // Apply initial filters
                 applyFilters()
@@ -259,12 +288,10 @@ class SellerOrdersActivity : AppCompatActivity() {
             val statusMatch = currentFilter == "All" || order.order_status == currentFilter
 
             // Date filter
-            val dateMatch = when (currentDateFilter) {
-                "Today" -> isToday(order.created_at)
-                "Last7Days" -> isWithinLastDays(order.created_at, 7)
-                "Last30Days" -> isWithinLastDays(order.created_at, 30)
-                "ThisMonth" -> isThisMonth(order.created_at)
-                else -> true // "All"
+            val dateMatch = if (selectedDate != null) {
+                isOnDate(order.created_at, selectedDate!!)
+            } else {
+                true
             }
 
             // Search filter
@@ -306,53 +333,20 @@ class SellerOrdersActivity : AppCompatActivity() {
             return true
         }
 
+        // Search in customer phone number
+        if (customer?.mobile?.lowercase(Locale.getDefault())?.contains(lowerQuery) == true) {
+            return true
+        }
+
         return false
     }
 
-    private fun isToday(dateString: String?): Boolean {
+    private fun isOnDate(dateString: String?, targetDate: String): Boolean {
         if (dateString.isNullOrEmpty()) return false
         return try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val orderDate = format.parse(dateString.substring(0, 10))
-            val today = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-            orderDate == today
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun isWithinLastDays(dateString: String?, days: Int): Boolean {
-        if (dateString.isNullOrEmpty()) return false
-        return try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val orderDate = format.parse(dateString.substring(0, 10))
-            val cutoffDate = Calendar.getInstance().apply {
-                add(Calendar.DAY_OF_YEAR, -days)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-            orderDate >= cutoffDate
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun isThisMonth(dateString: String?): Boolean {
-        if (dateString.isNullOrEmpty()) return false
-        return try {
-            val format = SimpleDateFormat("yyyy-MM", Locale.getDefault())
-            val orderMonth = format.parse(dateString.substring(0, 7))
-            val currentMonth = format.parse(
-                SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
-            )
-            orderMonth == currentMonth
+            // Extract just the date part (yyyy-MM-dd) from the timestamp
+            val orderDate = dateString.substring(0, 10)
+            orderDate == targetDate
         } catch (e: Exception) {
             false
         }
@@ -361,20 +355,17 @@ class SellerOrdersActivity : AppCompatActivity() {
     private fun updateStats(ordersList: List<Order>) {
         val totalOrders = ordersList.size
         val pendingOrders = ordersList.count { it.order_status == "Pending" }
-        val totalRevenue = ordersList.sumOf { order ->
-            orderItemsMap[order.order_id]?.sumOf { it.subtotal } ?: 0.0
-        }
 
         binding.tvTotalOrders.text = totalOrders.toString()
         binding.tvPendingOrders.text = pendingOrders.toString()
-//        binding.tvTotalRevenue.text = "$${String.format("%.2f", totalRevenue)}"
     }
 
     private fun showEmptyState() {
         binding.tvEmpty.visibility = View.VISIBLE
         binding.tvEmpty.text = when {
             currentSearchQuery.isNotEmpty() -> "No orders found for \"$currentSearchQuery\""
-            currentFilter != "All" || currentDateFilter != "All" -> "No orders match your filters"
+            currentFilter != "All" -> "No orders with status \"$currentFilter\""
+            selectedDate != null -> "No orders on $selectedDate"
             else -> "No orders found"
         }
     }
