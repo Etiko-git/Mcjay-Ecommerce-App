@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -61,6 +63,19 @@ class AddProductActivity : AppCompatActivity() {
         "Food & Beverages"
     )
 
+    // Validation limits
+    private companion object {
+        const val MAX_NAME_LENGTH = 200
+        const val MAX_DESCRIPTION_LENGTH = 500
+        const val MAX_TYPE_LENGTH = 100
+        const val MAX_BRAND_LENGTH = 100
+        const val MAX_SKU_LENGTH = 50
+        const val MAX_PRICE = 1000000.0
+        const val MAX_DISCOUNT_PRICE = 1000000.0
+        const val MAX_STOCK_QUANTITY = 100
+        const val MAX_IMAGES = 3
+    }
+
     // Contract for image selection
     private val imagePickerResult = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -72,10 +87,10 @@ class AddProductActivity : AppCompatActivity() {
                     val clipData = intent.clipData
                     for (i in 0 until (clipData?.itemCount ?: 0)) {
                         clipData?.getItemAt(i)?.uri?.let { uri ->
-                            if (imageUris.size < 5) {
+                            if (imageUris.size < MAX_IMAGES) {
                                 imageUris.add(uri)
                             } else {
-                                Toast.makeText(this, "Maximum 5 images allowed", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Maximum $MAX_IMAGES images allowed", Toast.LENGTH_SHORT).show()
                                 break
                             }
                         }
@@ -83,10 +98,10 @@ class AddProductActivity : AppCompatActivity() {
                 } else {
                     // Single image selected
                     intent.data?.let { uri ->
-                        if (imageUris.size < 5) {
+                        if (imageUris.size < MAX_IMAGES) {
                             imageUris.add(uri)
                         } else {
-                            Toast.makeText(this, "Maximum 5 images allowed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Maximum $MAX_IMAGES images allowed", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -107,6 +122,7 @@ class AddProductActivity : AppCompatActivity() {
         setupCategoryDropdown()
         setupImagePreview()
         setupListeners()
+        setupTextWatchers()
     }
 
     private fun generateProductId() {
@@ -114,11 +130,6 @@ class AddProductActivity : AppCompatActivity() {
         val timestamp = System.currentTimeMillis().toString().takeLast(6)
         val randomChars = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
         generatedProductId = "PROD-${timestamp}${randomChars}"
-
-        // Display the generated ID to the user
-//        binding.etProductId.setText(generatedProductId)
-//        binding.etProductId.isEnabled = false // Make it read-only
-//        binding.productIdInputLayout.isEnabled = false
 
         Log.d("AddProduct", "Generated Product ID: $generatedProductId")
     }
@@ -141,7 +152,6 @@ class AddProductActivity : AppCompatActivity() {
                     runOnUiThread {
                         // Update UI to show who is adding the product
                         binding.tvSellerInfo.text = "Adding product as: $currentSellerName"
-                        //binding.tvProductIdInfo.text = "Product ID: $generatedProductId"
                     }
                 } else {
                     Log.e("AddProduct", "No user logged in")
@@ -213,6 +223,160 @@ class AddProductActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupTextWatchers() {
+        // Name text watcher
+        binding.etProductName.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val name = s.toString().trim()
+                if (name.length > MAX_NAME_LENGTH) {
+                    binding.nameInputLayout.error = "Name cannot exceed $MAX_NAME_LENGTH characters"
+                } else {
+                    binding.nameInputLayout.error = null
+                }
+            }
+        })
+
+        // Description text watcher
+        binding.etDescription.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val description = s.toString().trim()
+                if (description.length > MAX_DESCRIPTION_LENGTH) {
+                    binding.descriptionInputLayout.error = "Description cannot exceed $MAX_DESCRIPTION_LENGTH characters"
+                } else {
+                    binding.descriptionInputLayout.error = null
+                }
+            }
+        })
+
+        // Type text watcher
+        binding.etType.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val type = s.toString().trim()
+                if (type.length > MAX_TYPE_LENGTH) {
+                    binding.typeInputLayout.error = "Type cannot exceed $MAX_TYPE_LENGTH characters"
+                } else {
+                    binding.typeInputLayout.error = null
+                }
+            }
+        })
+
+        // Brand text watcher
+        binding.etBrand.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val brand = s.toString().trim()
+                if (brand.length > MAX_BRAND_LENGTH) {
+                    binding.brandInputLayout.error = "Brand cannot exceed $MAX_BRAND_LENGTH characters"
+                } else {
+                    binding.brandInputLayout.error = null
+                }
+            }
+        })
+
+        // SKU text watcher
+        binding.etSku.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val sku = s.toString().trim()
+                if (sku.length > MAX_SKU_LENGTH) {
+                    binding.skuInputLayout.error = "SKU cannot exceed $MAX_SKU_LENGTH characters"
+                } else {
+                    binding.skuInputLayout.error = null
+                }
+            }
+        })
+
+        // Price text watcher
+        binding.etPrice.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val priceText = s.toString().trim()
+                if (priceText.isNotEmpty()) {
+                    try {
+                        val priceValue = priceText.toDouble()
+                        if (priceValue > MAX_PRICE) {
+                            binding.priceInputLayout.error = "Price cannot exceed ₹$MAX_PRICE"
+                        } else {
+                            binding.priceInputLayout.error = null
+                        }
+                    } catch (e: NumberFormatException) {
+                        binding.priceInputLayout.error = "Invalid price format"
+                    }
+                }
+            }
+        })
+
+        // Stock quantity text watcher
+        binding.etStockQuantity.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val stockText = s.toString().trim()
+                if (stockText.isNotEmpty()) {
+                    try {
+                        val stockValue = stockText.toInt()
+                        if (stockValue > MAX_STOCK_QUANTITY) {
+                            binding.stockInputLayout.error = "Stock quantity cannot exceed $MAX_STOCK_QUANTITY"
+                        } else {
+                            binding.stockInputLayout.error = null
+                        }
+                    } catch (e: NumberFormatException) {
+                        binding.stockInputLayout.error = "Invalid stock quantity"
+                    }
+                }
+            }
+        })
+
+        // Discount price text watcher
+        binding.etDiscountPrice.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val discountText = s.toString().trim()
+                val priceText = binding.etPrice.text.toString().trim()
+
+                if (discountText.isNotEmpty() && priceText.isNotEmpty()) {
+                    try {
+                        val discountValue = discountText.toDouble()
+                        val priceValue = priceText.toDouble()
+
+                        if (discountValue > MAX_DISCOUNT_PRICE) {
+                            binding.discountPriceInputLayout.error = "Discount price cannot exceed ₹$MAX_DISCOUNT_PRICE"
+                        } else if (discountValue >= priceValue) {
+                            binding.discountPriceInputLayout.error = "Discount price must be less than regular price"
+                        } else {
+                            binding.discountPriceInputLayout.error = null
+                        }
+                    } catch (e: NumberFormatException) {
+                        binding.discountPriceInputLayout.error = "Invalid discount price format"
+                    }
+                } else if (discountText.isNotEmpty()) {
+                    try {
+                        val discountValue = discountText.toDouble()
+                        if (discountValue > MAX_DISCOUNT_PRICE) {
+                            binding.discountPriceInputLayout.error = "Discount price cannot exceed ₹$MAX_DISCOUNT_PRICE"
+                        } else {
+                            binding.discountPriceInputLayout.error = null
+                        }
+                    } catch (e: NumberFormatException) {
+                        binding.discountPriceInputLayout.error = "Invalid discount price format"
+                    }
+                } else {
+                    binding.discountPriceInputLayout.error = null
+                }
+            }
+        })
+    }
+
     private fun openImagePicker() {
         val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "image/*"
@@ -236,18 +400,31 @@ class AddProductActivity : AppCompatActivity() {
         val category = binding.autoCompleteCategory.text.toString().trim()
         val price = binding.etPrice.text.toString().trim()
         val stockQuantity = binding.etStockQuantity.text.toString().trim()
+        val description = binding.etDescription.text.toString().trim()
+        val type = binding.etType.text.toString().trim()
+        val brand = binding.etBrand.text.toString().trim()
+        val sku = binding.etSku.text.toString().trim()
+        val discountPrice = binding.etDiscountPrice.text.toString().trim()
 
-        // Clear previous errors (except product ID which is auto-generated)
+        // Clear previous errors
         binding.nameInputLayout.error = null
         binding.categoryInputLayout.error = null
         binding.priceInputLayout.error = null
         binding.stockInputLayout.error = null
+        binding.descriptionInputLayout.error = null
+        binding.typeInputLayout.error = null
+        binding.brandInputLayout.error = null
+        binding.skuInputLayout.error = null
+        binding.discountPriceInputLayout.error = null
 
         var isValid = true
 
         // Name validation
         if (name.isEmpty()) {
             binding.nameInputLayout.error = "Product name is required"
+            isValid = false
+        } else if (name.length > MAX_NAME_LENGTH) {
+            binding.nameInputLayout.error = "Name cannot exceed $MAX_NAME_LENGTH characters"
             isValid = false
         }
 
@@ -267,6 +444,9 @@ class AddProductActivity : AppCompatActivity() {
                 if (priceValue <= 0) {
                     binding.priceInputLayout.error = "Price must be greater than 0"
                     isValid = false
+                } else if (priceValue > MAX_PRICE) {
+                    binding.priceInputLayout.error = "Price cannot exceed ₹$MAX_PRICE"
+                    isValid = false
                 }
             } catch (e: NumberFormatException) {
                 binding.priceInputLayout.error = "Invalid price format"
@@ -284,11 +464,66 @@ class AddProductActivity : AppCompatActivity() {
                 if (stockValue < 0) {
                     binding.stockInputLayout.error = "Stock quantity cannot be negative"
                     isValid = false
+                } else if (stockValue > MAX_STOCK_QUANTITY) {
+                    binding.stockInputLayout.error = "Stock quantity cannot exceed $MAX_STOCK_QUANTITY"
+                    isValid = false
                 }
             } catch (e: NumberFormatException) {
                 binding.stockInputLayout.error = "Invalid stock quantity"
                 isValid = false
             }
+        }
+
+        // Description validation
+        if (description.length > MAX_DESCRIPTION_LENGTH) {
+            binding.descriptionInputLayout.error = "Description cannot exceed $MAX_DESCRIPTION_LENGTH characters"
+            isValid = false
+        }
+
+        // Type validation
+        if (type.length > MAX_TYPE_LENGTH) {
+            binding.typeInputLayout.error = "Type cannot exceed $MAX_TYPE_LENGTH characters"
+            isValid = false
+        }
+
+        // Brand validation
+        if (brand.length > MAX_BRAND_LENGTH) {
+            binding.brandInputLayout.error = "Brand cannot exceed $MAX_BRAND_LENGTH characters"
+            isValid = false
+        }
+
+        // SKU validation
+        if (sku.length > MAX_SKU_LENGTH) {
+            binding.skuInputLayout.error = "SKU cannot exceed $MAX_SKU_LENGTH characters"
+            isValid = false
+        }
+
+        // Discount price validation (if provided)
+        if (discountPrice.isNotEmpty()) {
+            try {
+                val discountValue = discountPrice.toDouble()
+                val priceValue = price.toDouble()
+
+                if (discountValue <= 0) {
+                    binding.discountPriceInputLayout.error = "Discount price must be greater than 0"
+                    isValid = false
+                } else if (discountValue >= priceValue) {
+                    binding.discountPriceInputLayout.error = "Discount price must be less than regular price"
+                    isValid = false
+                } else if (discountValue > MAX_DISCOUNT_PRICE) {
+                    binding.discountPriceInputLayout.error = "Discount price cannot exceed ₹$MAX_DISCOUNT_PRICE"
+                    isValid = false
+                }
+            } catch (e: NumberFormatException) {
+                binding.discountPriceInputLayout.error = "Invalid discount price format"
+                isValid = false
+            }
+        }
+
+        // Image validation
+        if (imageUris.size > MAX_IMAGES) {
+            Toast.makeText(this, "Maximum $MAX_IMAGES images allowed", Toast.LENGTH_SHORT).show()
+            isValid = false
         }
 
         // Check if seller info is available
@@ -301,25 +536,6 @@ class AddProductActivity : AppCompatActivity() {
         if (generatedProductId.isEmpty()) {
             Toast.makeText(this, "Product ID generation failed. Please try again.", Toast.LENGTH_LONG).show()
             isValid = false
-        }
-
-        // Discount price validation (if provided)
-        val discountPrice = binding.etDiscountPrice.text.toString().trim()
-        if (discountPrice.isNotEmpty()) {
-            try {
-                val discountValue = discountPrice.toDouble()
-                val priceValue = price.toDouble()
-                if (discountValue <= 0) {
-                    binding.discountPriceInputLayout.error = "Discount price must be greater than 0"
-                    isValid = false
-                } else if (discountValue >= priceValue) {
-                    binding.discountPriceInputLayout.error = "Discount price must be less than regular price"
-                    isValid = false
-                }
-            } catch (e: NumberFormatException) {
-                binding.discountPriceInputLayout.error = "Invalid discount price format"
-                isValid = false
-            }
         }
 
         return isValid
@@ -387,7 +603,7 @@ class AddProductActivity : AppCompatActivity() {
                     setLoadingState(false)
                     Toast.makeText(
                         this@AddProductActivity,
-                        "Product added successfully!\nProduct ID: $generatedProductId",
+                        "Product added successfully!",
                         Toast.LENGTH_LONG
                     ).show()
 

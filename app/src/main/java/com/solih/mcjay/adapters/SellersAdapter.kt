@@ -31,7 +31,7 @@ class SellersAdapter(
         private val tvName: TextView = itemView.findViewById(R.id.tvName)
         private val tvEmail: TextView = itemView.findViewById(R.id.tvEmail)
         private val tvStore: TextView = itemView.findViewById(R.id.tvStore)
-        private val tvEarnings: TextView = itemView.findViewById(R.id.tvEarnings)
+        //private val tvEarnings: TextView = itemView.findViewById(R.id.tvEarnings)
         private val tvVerified: TextView = itemView.findViewById(R.id.tvVerified)
         private val btnDelete: View = itemView.findViewById(R.id.btnDelete)
 
@@ -49,7 +49,7 @@ class SellersAdapter(
             tvName.text = seller.full_name
             tvEmail.text = seller.email
             tvStore.text = seller.store_name ?: "No Store Name"
-            tvEarnings.text = "Earnings: $${seller.total_earnings}"
+            //tvEarnings.text = "Earnings: $${seller.total_earnings}"
             tvVerified.text = if (seller.is_verified) "Verified" else "Not Verified"
             tvVerified.setTextColor(
                 if (seller.is_verified) itemView.context.getColor(R.color.green_500)

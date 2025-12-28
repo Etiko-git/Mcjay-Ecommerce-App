@@ -6,7 +6,7 @@
     <string name="search_hint">Search products…</string>
     <string name="add_to_cart">Add to Cart</string>
     <string name="product_image">Product image</string>
-    <string name="price_format">$%.2f</string>
+    <string name="price_format">₹%.2f</string>
     <string name="discount_percent">%d%% OFF</string>
     <string name="out_of_stock">Out of Stock</string>
     <string name="product_unavailable">This product is currently unavailable</string>

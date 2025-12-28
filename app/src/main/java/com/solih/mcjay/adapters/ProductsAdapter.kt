@@ -43,7 +43,7 @@ class ProductsAdapter(
 
             tvName.text = product.name
             tvSeller.text = "Seller: ${product.seller_name ?: "Unknown"}"
-            tvPrice.text = "$${product.price}"
+            tvPrice.text = "₹${product.price}"
             tvStock.text = "Stock: ${product.stock_quantity}"
 
             btnDelete.setOnClickListener {

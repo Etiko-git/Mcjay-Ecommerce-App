@@ -250,7 +250,6 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Payment Method Section -->
-        <!-- Payment Method Section -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -294,7 +293,8 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:padding="16dp"
-                            android:background="?attr/selectableItemBackground">
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center_vertical">
 
                             <RadioButton
                                 android:id="@+id/radioCard"
@@ -336,7 +336,8 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:padding="16dp"
-                            android:background="?attr/selectableItemBackground">
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center_vertical">
 
                             <RadioButton
                                 android:id="@+id/radioUPI"
@@ -376,7 +377,8 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:padding="16dp"
-                            android:background="?attr/selectableItemBackground">
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center_vertical">
 
                             <RadioButton
                                 android:id="@+id/radioCOD"

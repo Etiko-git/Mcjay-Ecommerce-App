@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class ProfileFragment : Fragment() {
 
@@ -130,7 +131,7 @@ class ProfileFragment : Fragment() {
 
             } catch (e: Exception) {
                 Log.e("ProfileFragment", "Error loading profile: ${e.message}", e)
-                Toast.makeText(requireContext(), "Error loading profile: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Error loading profile Connect to the internet: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 showLoading(false)
             }
@@ -164,11 +165,12 @@ class ProfileFragment : Fragment() {
     }
 
     private fun updateUI(user: User) {
-        // Profile image
+        // Profile image - Load from user-profile bucket
         if (!user.profile_image.isNullOrEmpty()) {
             Glide.with(this)
                 .load(user.profile_image)
                 .placeholder(R.drawable.ic_profile_placeholder)
+                .circleCrop()
                 .into(binding.profileImage)
         } else {
             binding.profileImage.setImageResource(R.drawable.ic_profile_placeholder)
@@ -247,13 +249,13 @@ class ProfileFragment : Fragment() {
                     val bytes = inputStream?.use { it.readBytes() }
                         ?: throw Exception("Could not read image file")
 
-                    // Upload to Supabase storage with progress tracking
-                    supabase.storage.from("profile-images").upload(fileName, bytes) {
+                    // Upload to Supabase storage in "user-profile" bucket
+                    supabase.storage.from("user-profile").upload(fileName, bytes) {
                         upsert = true
                     }
 
-                    // Get public URL
-                    supabase.storage.from("profile-images").publicUrl(fileName)
+                    // Get public URL from "user-profile" bucket
+                    supabase.storage.from("user-profile").publicUrl(fileName)
                 }
 
                 // Update user profile with new image URL
@@ -263,21 +265,37 @@ class ProfileFragment : Fragment() {
                             "profile_image" to imageUrl
                         )
                     ) {
-                        // Use filter with eq for update as well
                         filter { eq("id", userId) }
                     }
                 }
 
-                // Reload profile
+                // Reload profile to show the updated image
                 loadUserProfile()
                 Toast.makeText(requireContext(), "Profile picture updated", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
+                Log.e("ProfileFragment", "Error uploading image: ${e.message}", e)
                 Toast.makeText(requireContext(), "Error uploading image: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("ProfileFragment", "Error uploading image", e)
             } finally {
                 showUploadProgress(false)
             }
+        }
+    }
+
+    private suspend fun getProfileImageUrl(userId: String): String? {
+        return try {
+            // List files in the user-profile bucket to find the user's profile image
+            val files = supabase.storage.from("user-profile").list()
+            val profileImage = files.find { it.name.startsWith("profile_${userId}_") }
+
+            if (profileImage != null) {
+                supabase.storage.from("user-profile").publicUrl(profileImage.name)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileFragment", "Error getting profile image URL: ${e.message}", e)
+            null
         }
     }
 
@@ -329,7 +347,6 @@ class ProfileFragment : Fragment() {
                             "updated_at" to "now()"
                         )
                     ) {
-                        // Use filter with eq for update
                         filter { eq("id", userId) }
                     }
                 }

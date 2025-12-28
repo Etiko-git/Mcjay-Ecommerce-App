@@ -27,7 +27,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/order_number"
+
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/black" />
@@ -57,7 +57,7 @@
             android:id="@+id/tvItemsPreview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/order_items_loading"
+            android:text="Order history"
             android:textSize="14sp"
             android:textColor="@color/gray"
             android:layout_marginBottom="8dp" />
@@ -72,7 +72,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/order_total"
+                android:text="Total: "
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@color/black" />

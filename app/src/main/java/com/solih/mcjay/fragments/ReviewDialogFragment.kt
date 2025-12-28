@@ -11,6 +11,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.DialogFragment
 import com.bumptech.glide.Glide
 import com.solih.mcjay.databinding.DialogReviewBinding
+import com.solih.mcjay.models.Review
+import com.solih.mcjay.models.ReviewInput
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
@@ -21,17 +23,16 @@ import kotlinx.coroutines.withContext
 class ReviewDialogFragment : DialogFragment() {
 
     interface ReviewSubmitListener {
-        fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?)
+        fun onReviewSubmitted(reviewInput: ReviewInput, imageUri: Uri?)
     }
 
     private var reviewListener: ReviewSubmitListener? = null
     private lateinit var binding: DialogReviewBinding
     private var selectedImageUri: Uri? = null
-    private var productId: String? = null
+    private var productId: String? = null // Should be String
     private val supabase = com.solih.mcjay.SupabaseClientInstance.client
     private val scope = CoroutineScope(Dispatchers.Main)
 
-    // Modern way to handle activity results
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -41,7 +42,7 @@ class ReviewDialogFragment : DialogFragment() {
         }
     }
 
-    fun setProductId(productId: String) {
+    fun setProductId(productId: String) { // Changed to String
         this.productId = productId
     }
 
@@ -139,22 +140,20 @@ class ReviewDialogFragment : DialogFragment() {
                         .select {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", currentProductId) // This should match your database type
+                                eq("product_id", currentProductId)
                             }
                         }
-                        .decodeList<com.solih.mcjay.models.Review>()
+                        .decodeList<Review>()
                         .firstOrNull()
                 }
 
                 if (existingReview != null) {
                     Log.d("ReviewDialog", "Found existing review: ${existingReview.id}")
                     withContext(Dispatchers.Main) {
-                        // Populate the form with existing review data
                         binding.reviewRatingBar.rating = existingReview.rating.toFloat()
                         binding.reviewEditText.setText(existingReview.review_text ?: "")
                         binding.submitReviewButton.text = "Update Review"
 
-                        // Load existing image if available
                         existingReview.review_image_url?.let { imageUrl ->
                             if (imageUrl.isNotEmpty()) {
                                 Glide.with(requireContext())
@@ -173,7 +172,6 @@ class ReviewDialogFragment : DialogFragment() {
 
             } catch (e: Exception) {
                 Log.e("ReviewDialog", "Error loading existing review: ${e.message}", e)
-                // Don't show error to user - just proceed with empty form
             }
         }
     }
@@ -181,20 +179,37 @@ class ReviewDialogFragment : DialogFragment() {
     private fun submitReview() {
         val rating = binding.reviewRatingBar.rating.toInt()
         val reviewText = binding.reviewEditText.text.toString().trim()
+        val userId = supabase.auth.currentUserOrNull()?.id ?: run {
+            Toast.makeText(requireContext(), "Please login to submit review", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         if (rating == 0) {
             Toast.makeText(requireContext(), "Please select a rating", Toast.LENGTH_SHORT).show()
             return
         }
 
-        Log.d("ReviewDialog", "Submitting review - Rating: $rating, Text: $reviewText, Has Image: ${selectedImageUri != null}")
+        val currentProductId = productId ?: run {
+            Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        reviewListener?.onReviewSubmitted(rating, reviewText, selectedImageUri)
+        // Create ReviewInput object with String product_id
+        val reviewInput = ReviewInput(
+            user_id = userId,
+            product_id = currentProductId, // This is String
+            rating = rating,
+            review_text = if (reviewText.isNotEmpty()) reviewText else null
+        )
+
+        Log.d("ReviewDialog", "Submitting review: $reviewInput, Has Image: ${selectedImageUri != null}")
+
+        reviewListener?.onReviewSubmitted(reviewInput, selectedImageUri)
         dismiss()
     }
 
     companion object {
-        fun newInstance(productId: String): ReviewDialogFragment {
+        fun newInstance(productId: String): ReviewDialogFragment { // Changed to String
             val fragment = ReviewDialogFragment()
             fragment.setProductId(productId)
             return fragment

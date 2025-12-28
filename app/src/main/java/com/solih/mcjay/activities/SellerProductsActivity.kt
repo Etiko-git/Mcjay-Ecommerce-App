@@ -440,10 +440,7 @@ class SellerProductsActivity : AppCompatActivity() {
                 """.trimIndent()
             )
             .setPositiveButton("Close", null)
-            .setNeutralButton("Edit") { _, _ ->
-                editProduct(product)
-            }
-            .create()
+             .create()
 
         dialog.show()
     }

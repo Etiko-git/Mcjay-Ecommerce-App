@@ -24,11 +24,12 @@ import com.solih.mcjay.fragments.ReviewDialogFragment
 import com.solih.mcjay.models.CartItem
 import com.solih.mcjay.models.Product
 import com.solih.mcjay.models.Review
+import com.solih.mcjay.models.ReviewInput
+import com.solih.mcjay.models.User
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
-
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -295,7 +296,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 Log.d("ProductDetail", "=== START LOAD REVIEWS ===")
                 Log.d("ProductDetail", "Product string ID: ${product.product_id}")
 
-                // Get reviews for this specific product
+                // Get reviews for this specific product with user information
                 val reviews = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("reviews")
                         .select {
@@ -307,9 +308,40 @@ class ProductDetailActivity : AppCompatActivity() {
 
                 Log.d("ProductDetail", "Loaded ${reviews.size} reviews for product ${product.product_id}")
 
+                // Fetch user information for each review
+                val reviewsWithUserNames = mutableListOf<Review>()
+                for (review in reviews) {
+                    try {
+                        val user = withContext(Dispatchers.IO) {
+                            supabase.postgrest.from("users")
+                                .select {
+                                    filter { eq("id", review.user_id) }
+                                }
+                                .decodeList<User>()
+                                .firstOrNull()
+                        }
+
+                        // Use name if available, otherwise username, otherwise "Anonymous User"
+                        val userName = when {
+                            !user?.name.isNullOrEmpty() -> user?.name
+                            !user?.username.isNullOrEmpty() -> user?.username
+                            else -> "Anonymous User"
+                        }
+
+                        val updatedReview = review.copy(
+                            user_name = userName
+                        )
+                        reviewsWithUserNames.add(updatedReview)
+                    } catch (e: Exception) {
+                        Log.e("ProductDetail", "Error fetching user for review: ${e.message}")
+                        // Use default name if profile fetch fails
+                        reviewsWithUserNames.add(review.copy(user_name = "Anonymous User"))
+                    }
+                }
+
                 withContext(Dispatchers.Main) {
                     reviewsList.clear()
-                    reviewsList.addAll(reviews)
+                    reviewsList.addAll(reviewsWithUserNames)
                     reviewsAdapter.notifyDataSetChanged()
 
                     Log.d("ProductDetail", "Reviews list size: ${reviewsList.size}")
@@ -385,13 +417,12 @@ class ProductDetailActivity : AppCompatActivity() {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
 
-                // CHANGED: Use string product_id for favorites
                 val favorites = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("favorites")
                         .select {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", product.product_id) // CHANGED: Use string product_id
+                                eq("product_id", product.product_id)
                             }
                         }
                         .decodeList<Map<String, Any>>()
@@ -415,24 +446,22 @@ class ProductDetailActivity : AppCompatActivity() {
                 }
 
                 if (isFavorite) {
-                    // Remove from favorites - CHANGED: Use string product_id
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("favorites").delete {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", product.product_id) // CHANGED: Use string product_id
+                                eq("product_id", product.product_id)
                             }
                         }
                     }
                     isFavorite = false
                     Toast.makeText(this@ProductDetailActivity, "Removed from favorites", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Add to favorites - CHANGED: Use string product_id
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("favorites").insert(
                             mapOf(
                                 "user_id" to userId,
-                                "product_id" to product.product_id // CHANGED: Use string product_id
+                                "product_id" to product.product_id
                             )
                         )
                     }
@@ -534,6 +563,7 @@ class ProductDetailActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun showReviewDialog() {
         val userId = supabase.auth.currentUserOrNull()?.id
         if (userId == null) {
@@ -541,59 +571,125 @@ class ProductDetailActivity : AppCompatActivity() {
             return
         }
 
-        // Check if user has purchased this product
+        // Check if user has purchased this product and order status is delivered, returned, or refunded
         scope.launch {
             try {
                 val hasPurchased = withContext(Dispatchers.IO) {
-                    val orders = supabase.postgrest.from("order_items")
-                        .select {
-                            filter {
-                                eq("product_id", product.id!!)
-                                eq("orders.user_id", userId)
-                                eq("orders.status", "delivered")
+                    try {
+                        // Approach: Check if there's any order item for this user and product
+                        // with order status delivered, returned, or refunded
+
+                        // First, try to get all orders for this user with the required status
+                        val orders = supabase.postgrest.from("orders")
+                            .select {
+                                filter {
+                                    eq("user_id", userId)
+                                    // Check for delivered, returned, or refunded status
+                                    // We'll use OR conditions by checking multiple times
+                                }
+                            }
+                            .decodeList<Map<String, Any>>()
+
+                        // Filter orders with allowed status
+                        val validOrders = orders.filter { order ->
+                            val status = order["status"] as? String
+                            status == "delivered" || status == "returned" || status == "refunded"
+                        }
+
+                        if (validOrders.isEmpty()) {
+                            Log.d("ProductDetail", "No valid orders found for user $userId")
+                            return@withContext false
+                        }
+
+                        Log.d("ProductDetail", "Found ${validOrders.size} valid orders for user $userId")
+
+                        // Get order IDs from valid orders
+                        val validOrderIds = validOrders.mapNotNull { it["id"]?.toString()?.toIntOrNull() }
+
+                        Log.d("ProductDetail", "Valid order IDs: $validOrderIds")
+                        Log.d("ProductDetail", "Checking for product ID: ${product.id}")
+
+                        // Check if any of these orders contain this product
+                        var productFound = false
+                        for (orderId in validOrderIds) {
+                            try {
+                                val orderItems = supabase.postgrest.from("order_items")
+                                    .select {
+                                        filter {
+                                            eq("order_id", orderId)
+                                            eq("product_id", product.id!!)
+                                        }
+                                    }
+                                    .decodeList<Map<String, Any>>()
+
+                                if (orderItems.isNotEmpty()) {
+                                    Log.d("ProductDetail", "Found product in order $orderId")
+                                    productFound = true
+                                    break
+                                }
+                            } catch (e: Exception) {
+                                Log.e("ProductDetail", "Error checking order items for order $orderId: ${e.message}")
                             }
                         }
-                        .decodeList<Map<String, Any>>()
 
-                    orders.isNotEmpty()
+                        productFound
+
+                    } catch (e: Exception) {
+                        Log.e("ProductDetail", "Error checking purchase status: ${e.message}", e)
+                        false
+                    }
                 }
 
                 withContext(Dispatchers.Main) {
                     if (hasPurchased) {
+                        Log.d("ProductDetail", "User has purchased the product, showing review dialog")
                         val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
                         reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
-                            override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
-                                submitReview(rating, reviewText, imageUri)
+                            override fun onReviewSubmitted(reviewInput: ReviewInput, imageUri: Uri?) {
+                                submitReview(reviewInput, imageUri)
                             }
                         })
                         reviewDialog.show(supportFragmentManager, "ReviewDialog")
                     } else {
-                        Toast.makeText(this@ProductDetailActivity, "You need to purchase this product before reviewing", Toast.LENGTH_LONG).show()
+                        Log.d("ProductDetail", "User has NOT purchased the product, showing warning")
+                        Toast.makeText(this@ProductDetailActivity,
+                            "You need to purchase this product and receive it before reviewing",
+                            Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("ProductDetail", "Error checking purchase status: ${e.message}")
-                    // Fallback - allow review without purchase check
-                    val reviewDialog = ReviewDialogFragment.newInstance(product.product_id)
-                    reviewDialog.setReviewListener(object : ReviewDialogFragment.ReviewSubmitListener {
-                        override fun onReviewSubmitted(rating: Int, reviewText: String, imageUri: Uri?) {
-                            submitReview(rating, reviewText, imageUri)
-                        }
-                    })
-                    reviewDialog.show(supportFragmentManager, "ReviewDialog")
+                    Log.e("ProductDetail", "Error in purchase check process: ${e.message}")
+                    Toast.makeText(this@ProductDetailActivity,
+                        "Error checking purchase history. Please try again.",
+                        Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    private fun submitReview(rating: Int, reviewText: String, imageUri: Uri?) {
+    private fun submitReview(reviewInput: ReviewInput, imageUri: Uri?) {
         scope.launch {
             try {
                 val userId = supabase.auth.currentUserOrNull()?.id
                     ?: throw Exception("User not logged in")
 
-                val productId = product.product_id // This should be String
+                // First, fetch the user's information from the users table
+                val user = withContext(Dispatchers.IO) {
+                    supabase.postgrest.from("users")
+                        .select {
+                            filter { eq("id", userId) }
+                        }
+                        .decodeList<User>()
+                        .firstOrNull()
+                }
+
+                // Use name if available, otherwise username, otherwise "Anonymous User"
+                val userName = when {
+                    !user?.name.isNullOrEmpty() -> user?.name
+                    !user?.username.isNullOrEmpty() -> user?.username
+                    else -> "Anonymous User"
+                }
 
                 // Upload image first if exists and get URL
                 val imageUrl = if (imageUri != null) {
@@ -602,24 +698,13 @@ class ProductDetailActivity : AppCompatActivity() {
                     null
                 }
 
-                val reviewData = buildMap<String, Any> {
-                    put("user_id", userId)
-                    put("product_id", productId) // This should be String
-                    put("rating", rating)
-                    if (reviewText.isNotEmpty()) {
-                        put("review_text", reviewText)
-                    }
-                    imageUrl?.let { put("review_image_url", it) }
-                    put("updated_at", "now()")
-                }
-
                 // Check if user already has a review for this product
                 val existingReview = withContext(Dispatchers.IO) {
                     supabase.postgrest.from("reviews")
                         .select {
                             filter {
                                 eq("user_id", userId)
-                                eq("product_id", productId) // This should be String
+                                eq("product_id", reviewInput.product_id)
                             }
                         }
                         .decodeList<Review>()
@@ -628,9 +713,21 @@ class ProductDetailActivity : AppCompatActivity() {
 
                 if (existingReview != null) {
                     // Update existing review
+                    val updatedReview = Review(
+                        id = existingReview.id,
+                        user_id = reviewInput.user_id,
+                        product_id = reviewInput.product_id,
+                        rating = reviewInput.rating,
+                        review_text = reviewInput.review_text,
+                        review_image_url = imageUrl ?: existingReview.review_image_url,
+                        created_at = existingReview.created_at,
+                        updated_at = null, // This will use database default
+                        user_name = userName // Update user name
+                    )
+
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("reviews")
-                            .update(reviewData) {
+                            .update(updatedReview) {
                                 filter {
                                     eq("id", existingReview.id!!)
                                 }
@@ -638,10 +735,21 @@ class ProductDetailActivity : AppCompatActivity() {
                     }
                     Toast.makeText(this@ProductDetailActivity, "Review updated successfully!", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Create new review
+                    // Create new review - create a Review object with user_name
+                    val newReview = Review(
+                        user_id = reviewInput.user_id,
+                        product_id = reviewInput.product_id,
+                        rating = reviewInput.rating,
+                        review_text = reviewInput.review_text,
+                        review_image_url = imageUrl,
+                        created_at = null, // This will use database default
+                        updated_at = null,
+                        user_name = userName // Add user name from users table
+                    )
+
                     withContext(Dispatchers.IO) {
                         supabase.postgrest.from("reviews")
-                            .insert(reviewData)
+                            .insert(newReview)
                     }
                     Toast.makeText(this@ProductDetailActivity, "Review submitted successfully!", Toast.LENGTH_SHORT).show()
                 }

@@ -60,15 +60,7 @@
                 android:textSize="12sp"
                 android:layout_marginTop="2dp" />
 
-            <TextView
-                android:id="@+id/tvEarnings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Earnings: $0.00"
-                android:textColor="@color/green_500"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+
 
             <TextView
                 android:id="@+id/tvVerified"
